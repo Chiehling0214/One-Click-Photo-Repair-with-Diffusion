@@ -4,10 +4,12 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from typing import Optional
 import torch
+import time
 
 #local
 # from app.services.diffusion import diffusion_service
 from app.utils.resize import prepare_image_and_mask
+from app.utils.restore import restore_to_origin
 
 router = APIRouter()
 
@@ -24,20 +26,25 @@ async def inpaint(
     seed: Optional[int] = Form(None, ge=0)
 ):
     try:
+        t0 = time.time()
         diffusion_service = request.app.state.diffusion_service
         image_bytes = await image.read()
         mask_bytes = await mask.read()
 
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        msk = Image.open(io.BytesIO(mask_bytes)).convert("RGB")
+        msk = Image.open(io.BytesIO(mask_bytes)).convert("L")
 
     
-        img, msk = prepare_image_and_mask(img, msk, max_side=768, target=TARGET_SIZE)
+        img, msk, meta = prepare_image_and_mask(img, msk, max_side=768, target=TARGET_SIZE)
 
-        result = diffusion_service.inpaint(img, msk, prompt, steps, guidance, seed)
+        result = diffusion_service.inpaint(img, msk, prompt, steps, guidance, seed, TARGET_SIZE)
+
+        result_final = restore_to_origin(result, meta)
+
+        latency = time.time() - t0
 
         buf = io.BytesIO()
-        result.save(buf, format="PNG")
+        result_final.save(buf, format="PNG")
         buf.seek(0)
 
         response = StreamingResponse(buf, media_type="image/png")
@@ -45,6 +52,7 @@ async def inpaint(
         response.headers["X-Steps"] = str(steps)
         response.headers["X-Guidance"] = str(guidance)
         response.headers["X-Seed"] = "" if seed is None else str(seed)
+        response.headers["X-Latency"] = f"{latency:.2f}"
 
         return response
     except torch.cuda.OutOfMemoryError:

@@ -32,4 +32,17 @@ def prepare_image_and_mask(image, mask, max_side=768, target=512):
     # binarize mask, make sure 0 or 255
     mask = mask.point(lambda p: 255 if p > 128 else 0)
 
-    return image, mask
+    metadata = {
+        "orig_w": w,
+        "orig_h": h,
+        "pad_left": pad_left,
+        "pad_top": pad_top,
+        "pad_right": pad_right,
+        "pad_bottom": pad_bottom,
+        "scaled_w": new_w,
+        "scaled_h": new_h,
+        "side": side,
+        "target": target
+    }
+
+    return image, mask, metadata
