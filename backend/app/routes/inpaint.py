@@ -8,7 +8,7 @@ import time
 
 #local
 # from app.services.diffusion import diffusion_service
-from app.utils.resize import prepare_image_and_mask
+from app.utils.resize import fit_to_image, prepare_image_and_mask
 from app.utils.restore import restore_to_origin
 from app.utils.roi import compute_roi_box, paste_with_feather
 
@@ -34,6 +34,12 @@ async def inpaint(
 
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         msk = Image.open(io.BytesIO(mask_bytes)).convert("L")
+
+        if msk.size == (640, 420) and img.size != (640, 420):
+            msk = fit_to_image(msk, img.width, img.height, 640, 420)
+        # save mask to local
+        img.save("debug_image.png")
+        msk.save("debug_mask.png")
 
         result_final = inpaint_roi_full(img, msk, prompt, diffusion_service, steps, guidance, seed, target=TARGET_SIZE, margin=192, feather_px=16)
 
@@ -75,7 +81,7 @@ def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, d
         steps=steps, 
         guidance=guidance, 
         seed=seed, 
-        target=target
+        target_size=target
     )
 
     roi_out = restore_to_origin(roi_out_sq, meta)

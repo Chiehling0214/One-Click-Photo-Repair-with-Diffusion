@@ -200,7 +200,7 @@ export default function App() {
                 maskBlob={maskBlob}
                 imagePreviewUrl={imageUrl}
                 maskPreviewUrl={maskUrl}
-                endpoint="/api/inpaint"
+                endpoint="http://127.0.0.1:8000/inpaint"
                 onBack={() => setPage('mask')}
                 onDone={({ resultUrl: url }) => {
                   setResultUrl(url)

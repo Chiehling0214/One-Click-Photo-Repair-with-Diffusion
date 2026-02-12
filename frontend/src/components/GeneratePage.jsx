@@ -5,7 +5,7 @@ export default function GeneratePage({
   maskBlob,      // Blob (png)
   imagePreviewUrl,
   maskPreviewUrl,
-  endpoint = '/api/inpaint',
+  endpoint = 'http://127.0.0.1:8000/inpaint',
   onBack,        // () => void
   onDone,        // ({ resultUrl, meta? }) => void
 }) {
@@ -44,15 +44,16 @@ export default function GeneratePage({
         }
 
         setProgressText('Generating...')
-        const data = await res.json()
 
-        // 你後端如果回 base64，就改這裡
-        if (!data?.resultUrl) throw new Error('Missing resultUrl in response')
+        const blob = await res.blob()
+        const resultUrl = URL.createObjectURL(blob)
+        const latency = res.headers.get("X-Latency")
 
         if (cancelled) return
         setStatus('done')
-        setProgressText('Done')
-        onDone?.({ resultUrl: data.resultUrl, meta: data })
+        // setProgressText('Done')
+        setProgressText(`Done in ${latency}s`)
+        onDone?.({ resultUrl })
       } catch (e) {
         if (cancelled) return
         setStatus('error')
