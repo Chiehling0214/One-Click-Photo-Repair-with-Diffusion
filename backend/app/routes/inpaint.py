@@ -10,6 +10,7 @@ import time
 # from app.services.diffusion import diffusion_service
 from app.utils.resize import prepare_image_and_mask
 from app.utils.restore import restore_to_origin
+from app.utils.roi import compute_roi_box, paste_with_feather
 
 router = APIRouter()
 
@@ -34,12 +35,7 @@ async def inpaint(
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         msk = Image.open(io.BytesIO(mask_bytes)).convert("L")
 
-    
-        img, msk, meta = prepare_image_and_mask(img, msk, max_side=768, target=TARGET_SIZE)
-
-        result = diffusion_service.inpaint(img, msk, prompt, steps, guidance, seed, TARGET_SIZE)
-
-        result_final = restore_to_origin(result, meta)
+        result_final = inpaint_roi_full(img, msk, prompt, diffusion_service, steps, guidance, seed, target=TARGET_SIZE, margin=192, feather_px=16)
 
         latency = time.time() - t0
 
@@ -59,3 +55,31 @@ async def inpaint(
         raise HTTPException(status_code=507, detail="CUDA out of memory. Try reducing the image size or steps.")
 
     
+def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, target : int = 512, margin: int = 192, feather_px: int = 16):
+    box = compute_roi_box(mask_l, margin=margin)
+
+    if box is None:
+        return image_rgb
+    
+    x0, y0, x1, y1 = box
+
+    roi_img = image_rgb.crop(box)
+    roi_msk = mask_l.crop(box)
+
+    roi_img_prepared, roi_msk_prepared, meta = prepare_image_and_mask(roi_img, roi_msk, max_side=768, target=target)
+
+    roi_out_sq = diffusion_service.inpaint(
+        image=roi_img_prepared, 
+        mask=roi_msk_prepared, 
+        prompt=prompt, 
+        steps=steps, 
+        guidance=guidance, 
+        seed=seed, 
+        target=target
+    )
+
+    roi_out = restore_to_origin(roi_out_sq, meta)
+
+    out = paste_with_feather(image_rgb, roi_out, roi_msk, box, feather_px=feather_px)
+
+    return out
