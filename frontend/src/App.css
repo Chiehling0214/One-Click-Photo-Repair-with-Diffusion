@@ -1,4 +1,4 @@
-#root {
+/* #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
@@ -39,4 +39,308 @@
 
 .read-the-docs {
   color: #888;
+} */
+
+
+
+:root {
+  color-scheme: light dark;
+}
+
+.app-shell{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.topbar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0 24px 0;
+}
+
+.brand{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+.brandMark{
+  font-size: 18px;
+  line-height: 1;
+}
+.brandName{
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.nav{
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.navLink{
+  font-size: 14px;
+  opacity: 0.8;
+  text-decoration: none;
+}
+.navLink:hover{
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.main{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.hero{
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 28px;
+  align-items: center;
+  padding: 22px 0;
+}
+
+.title{
+  font-size: 44px;
+  line-height: 1.05;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.8px;
+}
+.subtitle{
+  margin: 0 0 18px 0;
+  opacity: 0.8;
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+.ctaRow{
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 14px 0;
+}
+
+.primaryBtn, .secondaryBtn, .ghostBtn{
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.primaryBtn{
+  border-color: rgba(255,255,255,0.14);
+}
+
+.secondaryBtn{
+  background: transparent;
+  border-color: rgba(255,255,255,0.22);
+}
+
+.ghostBtn{
+  background: transparent;
+  border-color: rgba(255,255,255,0.18);
+  opacity: 0.9;
+}
+.ghostBtn:hover, .secondaryBtn:hover{
+  opacity: 1;
+}
+
+.metaRow{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  opacity: 0.85;
+}
+
+.heroMock{
+  display: flex;
+  justify-content: center;
+}
+
+.mockCard{
+  width: 100%;
+  max-width: 360px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+}
+
+.mockTop{
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  opacity: 0.85;
+}
+
+.mockBody{
+  padding: 14px 12px 10px 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.mockLine{
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+}
+.mockLine.strong{
+  height: 14px;
+  width: 70%;
+}
+
+.mockGrid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.mockTile{
+  height: 64px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.mockFooter{
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mockBtn{
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sectionTitle{
+  margin: 0 0 14px 0;
+  font-size: 20px;
+  letter-spacing: -0.2px;
+}
+
+.section{
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.panel{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.card{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.card.highlight{
+  border-color: rgba(255,255,255,0.26);
+}
+
+.cardTitle{
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.cardText{
+  margin: 0;
+  opacity: 0.8;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.price{
+  margin: 14px 0 12px 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.faq{
+  display: grid;
+  gap: 10px;
+}
+
+.faqItem{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.faqItem summary{
+  cursor: pointer;
+  font-weight: 700;
+}
+.faqItem p{
+  margin-top: 10px;
+}
+
+.footer{
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 0 6px 0;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+@media (max-width: 860px){
+  .hero{
+    grid-template-columns: 1fr;
+  }
+  .title{
+    font-size: 36px;
+  }
+  .grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
