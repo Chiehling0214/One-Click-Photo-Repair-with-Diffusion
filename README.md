@@ -2,28 +2,18 @@
 
 ## How to Setup for Backend
 
+In CMD,   
 ```bash
 cd backend
 ```
 
 ```bash
-python -m venv venv
-```
-
-```bash
-venv\Scripts\activate
-```
-
-```bash
-pip install -r requirements.txt
-```
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+setup.bat
 ```
 
 ## How to Run Inpainting API Server
 
+In CMD,    
 ```bash
 cd backend
 ```
