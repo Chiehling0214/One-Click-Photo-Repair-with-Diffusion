@@ -3,11 +3,15 @@ import './App.css'
 
 import ImageUpload from './components/ImageUpload.jsx'
 import MaskEditor from './components/MaskEditor.jsx'
+import PromptPicker from './components/PromptPicker.jsx'
 import GeneratePage from './components/GeneratePage.jsx'
 import ResultPage from './components/ResultPage.jsx'
 
 export default function App() {
-  const [page, setPage] = useState('home') // home | upload | mask | generate | result
+  const [page, setPage] = useState('home') // home | upload | mask | prompt | generate | result
+
+  const [prompts, setPrompts] = useState([]) // selected prompts
+  const [variations, setVariations] = useState(1) // 1..5
 
   const [imageFile, setImageFile] = useState(null)
   const [imageUrl, setImageUrl] = useState('')     // preview
@@ -96,7 +100,7 @@ export default function App() {
                 </div>
 
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
-                  <span className="cardText">Step 1/4: Upload</span>
+                  <span className="cardText">Step 1/5: Upload</span>
                   <span className="cardText">Next: Mask</span>
                 </div>
               </div>
@@ -129,7 +133,7 @@ export default function App() {
                   setMaskBlob(blob)
                   const url = URL.createObjectURL(blob)
                   setMaskUrl(url)
-                  setPage('generate') // ✅ 接到等待/生成頁
+                  setPage('prompt')
                 }}
               />
             </div>
@@ -167,7 +171,70 @@ export default function App() {
                   )}
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
-                  <span className="cardText">Step 2/4: Mask</span>
+                  <span className="cardText">Step 2/5: Mask</span>
+                  <span className="cardText">Next: Prompt</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    )
+  }
+
+  // ---------- Prompt ----------
+  if (page === 'prompt') {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brandMark" aria-hidden="true">◆</span>
+            <span className="brandName">AppName</span>
+          </div>
+          <button className="ghostBtn" onClick={() => setPage('mask')}>
+            Back to mask
+          </button>
+        </header>
+  
+        <main className="main">
+          <section className="hero">
+            <div className="heroCopy">
+              <PromptPicker
+                defaultSelected={prompts}
+                defaultCount={variations}
+                maxSelected={12}
+                onChange={({ prompts: ps, count }) => {
+                  setPrompts(ps)
+                  setVariations(count)
+                }}
+                onBack={() => setPage('mask')}
+                onContinue={({ prompts: ps, count }) => {
+                  setPrompts(ps)
+                  setVariations(count)
+                  setPage('generate') // ✅ proceed to generate
+                }}
+              />
+            </div>
+  
+            <div className="heroMock">
+              <div className="mockCard" style={{ width: '100%', maxWidth: 420 }}>
+                <div className="mockTop">
+                  <div className="dot" />
+                  <div className="dot" />
+                  <div className="dot" />
+                </div>
+                <div className="mockBody">
+                  <p className="cardText" style={{ marginTop: 4 }}>
+                    Selected prompts will be combined as a single string and sent to the backend.
+                  </p>
+  
+                  <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                    <div className="pill">Step 3/5: Prompt</div>
+                    <div className="pill">Variations: {variations}</div>
+                    <div className="pill">Selected: {prompts.length}</div>
+                  </div>
+                </div>
+                <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
                   <span className="cardText">Next: Generate</span>
                 </div>
               </div>
@@ -200,8 +267,10 @@ export default function App() {
                 maskBlob={maskBlob}
                 imagePreviewUrl={imageUrl}
                 maskPreviewUrl={maskUrl}
+                prompts={prompts}
+                variations={variations}
                 endpoint="http://127.0.0.1:8000/inpaint"
-                onBack={() => setPage('mask')}
+                onBack={() => setPage('prompt')}
                 onDone={({ resultUrl: url }) => {
                   setResultUrl(url)
                   setPage('result')
@@ -225,7 +294,7 @@ export default function App() {
                   </p>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
-                  <span className="cardText">Step 3/4: Generate</span>
+                  <span className="cardText">Step 4/5: Generate</span>
                   <span className="cardText">Next: Result</span>
                 </div>
               </div>
@@ -273,7 +342,7 @@ export default function App() {
                   </p>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
-                  <span className="cardText">Step 4/4: Result</span>
+                  <span className="cardText">Step 5/5: Result</span>
                   <span className="cardText">Done</span>
                 </div>
               </div>

@@ -5,6 +5,8 @@ export default function GeneratePage({
   maskBlob,      // Blob (png)
   imagePreviewUrl,
   maskPreviewUrl,
+  prompts = [],
+  variations = 1,
   endpoint = 'http://127.0.0.1:8000/inpaint',
   onBack,        // () => void
   onDone,        // ({ resultUrl, meta? }) => void
@@ -29,9 +31,9 @@ export default function GeneratePage({
         form.append('image', imageFile)
         form.append('mask', maskBlob, 'mask.png')
 
-        // 如果你還要傳 prompt / strength / seed 等，也可以 append
-        // form.append('prompt', '...')
-        // form.append('strength', '0.8')
+        const promptText = prompts.join(', ')
+        form.append('prompt', promptText)
+        form.append('num_outputs', String(variations))
 
         const res = await fetch(endpoint, {
           method: 'POST',
