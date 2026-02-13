@@ -3,13 +3,23 @@ from diffusers import StableDiffusionInpaintPipeline
 
 class DiffusionService:
     def __init__(self):
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        print("Using device:", self.device)
+
+        # CUDA 用 fp16，CPU 一定要用 float32
+        dtype = torch.float16 if self.device == "cuda" else torch.float32
+
         self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
             "runwayml/stable-diffusion-inpainting",
-            # revision="fp16",
-            torch_dtype=torch.float16,
+            torch_dtype=dtype,
         )
-        self.pipe.to("cuda")
-        self.pipe.enable_attention_slicing()
+
+        self.pipe.to(self.device)
+
+        if self.device == "cuda":
+            self.pipe.enable_attention_slicing()
     
     def inpaint(self, image, mask, prompt, steps=20, guidance=7.5, seed=None, target_size=512):
         if seed is not None:

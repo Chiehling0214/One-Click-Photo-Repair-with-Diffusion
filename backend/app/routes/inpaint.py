@@ -1,3 +1,4 @@
+import base64
 from PIL import Image
 import io
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
@@ -24,6 +25,7 @@ async def inpaint(
     prompt: str = Form("clean background"),
     steps: int = Form(20, ge=1, le=30),
     guidance: float = Form(7.5, ge=1.0, le=10.0),
+    num_outputs: int = Form(1, ge=1, le=5),
     seed: Optional[int] = Form(None, ge=0)
 ):
     try:
@@ -41,22 +43,54 @@ async def inpaint(
         img.save("debug_image.png")
         msk.save("debug_mask.png")
 
-        result_final = inpaint_roi_full(img, msk, prompt, diffusion_service, steps, guidance, seed, target=TARGET_SIZE, margin=192, feather_px=16)
+        base_seed = seed if seed is not None else int(time.time())  # 沒給 seed 就用時間當 base
+        seeds = [base_seed + i for i in range(num_outputs)]
+        print(f"prompt: {prompt}, steps: {steps}, guidance: {guidance}, seed: {seed}")
+
+        results_b64 = []
+        
+        for s in seeds:
+            out_img = inpaint_roi_full(
+                img, 
+                msk, 
+                prompt, 
+                diffusion_service, 
+                steps, 
+                guidance, 
+                s, 
+                target=TARGET_SIZE, 
+                margin=192, 
+                feather_px=16
+            )
+            
+            buf = io.BytesIO()
+            out_img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+            results_b64.append(b64)
+            
+        # result_final = inpaint_roi_full(img, msk, prompt, diffusion_service, steps, guidance, seed, target=TARGET_SIZE, margin=192, feather_px=16)
 
         latency = time.time() - t0
 
-        buf = io.BytesIO()
-        result_final.save(buf, format="PNG")
-        buf.seek(0)
+        # buf = io.BytesIO()
+        # result_final.save(buf, format="PNG")
+        # buf.seek(0)
 
-        response = StreamingResponse(buf, media_type="image/png")
-        response.headers["X-Target-Size"] =  str(TARGET_SIZE)
-        response.headers["X-Steps"] = str(steps)
-        response.headers["X-Guidance"] = str(guidance)
-        response.headers["X-Seed"] = "" if seed is None else str(seed)
-        response.headers["X-Latency"] = f"{latency:.2f}"
+        # response = StreamingResponse(buf, media_type="image/png")
+        # response.headers["X-Target-Size"] =  str(TARGET_SIZE)
+        # response.headers["X-Steps"] = str(steps)
+        # response.headers["X-Guidance"] = str(guidance)
+        # response.headers["X-Seed"] = "" if seed is None else str(seed)
+        # response.headers["X-Latency"] = f"{latency:.2f}"
 
-        return response
+        return {
+            "images": results_b64,
+            "seeds": seeds,
+            "latency": round(latency, 2),
+            "target_size": TARGET_SIZE,
+            "steps": steps,
+            "guidance": guidance
+        }
     except torch.cuda.OutOfMemoryError:
         raise HTTPException(status_code=507, detail="CUDA out of memory. Try reducing the image size or steps.")
 

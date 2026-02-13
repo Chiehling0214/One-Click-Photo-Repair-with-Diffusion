@@ -1,7 +1,7 @@
 export default function ResultPage({
     inputUrl,
     maskUrl,
-    resultUrl,
+    resultUrls,
     onRestart,     // () => void
     onBack,        // () => void (back to mask)
   }) {
@@ -10,33 +10,53 @@ export default function ResultPage({
         <div style={styles.topRow}>
           <div>
             <h2 style={styles.h2}>Result</h2>
-            <p style={styles.p}>Your inpaint output is ready.</p>
+            <p style={styles.p}>Select your preferred inpaint result.</p>
           </div>
-  
+
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={onBack} style={styles.btnSecondary}>Back to mask</button>
             <button onClick={onRestart} style={styles.btnPrimary}>Start over</button>
           </div>
         </div>
-  
-        <div style={styles.grid3}>
+
+        {/* Input + Mask */}
+        <div style={styles.grid2}>
           <div style={styles.card}>
             <div style={styles.cardTitle}>Input</div>
             <img src={inputUrl} alt="input" style={styles.img} />
           </div>
+
           <div style={styles.card}>
             <div style={styles.cardTitle}>Mask</div>
             <img src={maskUrl} alt="mask" style={styles.img} />
           </div>
-          <div style={styles.card}>
-            <div style={styles.cardTitle}>Result</div>
-            <img src={resultUrl} alt="result" style={styles.img} />
-            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-              <a href={resultUrl} target="_blank" rel="noreferrer" style={styles.link}>
-                Open original
-              </a>
-            </div>
+        </div>
+
+        {/* Results */}
+        <div style={{ marginTop: 20 }}>
+          <div style={styles.sectionTitle}>Generated Results</div>
+
+          <div style={styles.gridDynamic}>
+            {(resultUrls || []).map((url, i) => (
+              <div key={i} style={styles.card}>
+                <div style={styles.cardTitle}>Option {i + 1}</div>
+                <img src={url} alt={`result-${i}`} style={styles.img} />
+
+                <div style={styles.actionRow}>
+                  <a href={url} target="_blank" rel="noreferrer" style={styles.link}>
+                    Open
+                  </a>
+                  <a href={url} download={`result-${i + 1}.png`} style={styles.link}>
+                    Download
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
+
+          {(!resultUrls || resultUrls.length === 0) ? (
+            <div style={{ marginTop: 10, opacity: 0.6 }}>No results</div>
+          ) : null}
         </div>
       </div>
     )
@@ -92,5 +112,32 @@ export default function ResultPage({
       cursor: 'pointer',
     },
     link: { color: 'inherit', opacity: 0.9, textDecoration: 'underline' },
+    grid2: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12,
+      marginTop: 14,
+    },
+
+    gridDynamic: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+      gap: 12,
+      marginTop: 12,
+    },
+
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: 700,
+      opacity: 0.9,
+    },
+
+    actionRow: {
+      marginTop: 10,
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+
   }
   

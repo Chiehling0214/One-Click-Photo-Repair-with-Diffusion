@@ -45,17 +45,43 @@ export default function GeneratePage({
           throw new Error(`HTTP ${res.status}: ${t || 'request failed'}`)
         }
 
+        //--------------------------------------------------------
+        // setProgressText('Generating...')
+
+        // const blob = await res.blob()
+        // const resultUrl = URL.createObjectURL(blob)
+        // const latency = res.headers.get("X-Latency")
+
+        // if (cancelled) return
+        // setStatus('done')
+        // // setProgressText('Done')
+        // setProgressText(`Done in ${latency}s`)
+        // onDone?.({ resultUrl })
+        //--------------------------------------------------------
         setProgressText('Generating...')
 
-        const blob = await res.blob()
-        const resultUrl = URL.createObjectURL(blob)
-        const latency = res.headers.get("X-Latency")
+        const data = await res.json()
+        if (!data?.images?.length) throw new Error('Missing images')
 
+        // const resultUrls = data.images.map(b64 => `data:image/png;base64,${b64}`)
+        const resultUrls = data.images.map(b64 => {
+          const byteString = atob(b64)
+          const ab = new ArrayBuffer(byteString.length)
+          const ia = new Uint8Array(ab)
+
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i)
+          }
+
+          const blob = new Blob([ab], { type: 'image/png' })
+          return URL.createObjectURL(blob)
+        })
+
+        console.log('resultUrls:', resultUrls)
         if (cancelled) return
         setStatus('done')
-        // setProgressText('Done')
-        setProgressText(`Done in ${latency}s`)
-        onDone?.({ resultUrl })
+        setProgressText(data.latency ? `Done in ${data.latency}s` : 'Done')
+        onDone?.({ resultUrls })
       } catch (e) {
         if (cancelled) return
         setStatus('error')
@@ -67,7 +93,7 @@ export default function GeneratePage({
     return () => {
       cancelled = true
     }
-  }, [canStart, endpoint, imageFile, maskBlob, onDone])
+  }, [canStart, endpoint, imageFile, maskBlob, onDone, prompts, variations])
 
   return (
     <div style={styles.panel}>

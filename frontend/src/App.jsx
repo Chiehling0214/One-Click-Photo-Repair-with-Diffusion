@@ -17,7 +17,7 @@ export default function App() {
   const [imageUrl, setImageUrl] = useState('')     // preview
   const [maskBlob, setMaskBlob] = useState(null)
   const [maskUrl, setMaskUrl] = useState('')       // preview
-  const [resultUrl, setResultUrl] = useState('')
+  const [resultUrls, setResultUrls] = useState([])
 
   const features = useMemo(
     () => [
@@ -33,7 +33,7 @@ export default function App() {
     setImageUrl('')
     setMaskBlob(null)
     setMaskUrl('')
-    setResultUrl('')
+    setResultUrls([])
     setPage('upload')
   }
 
@@ -271,8 +271,8 @@ export default function App() {
                 variations={variations}
                 endpoint="http://127.0.0.1:8000/inpaint"
                 onBack={() => setPage('prompt')}
-                onDone={({ resultUrl: url }) => {
-                  setResultUrl(url)
+                onDone={({ resultUrls: urls }) => {
+                  setResultUrls(urls)
                   setPage('result')
                 }}
               />
@@ -323,7 +323,7 @@ export default function App() {
               <ResultPage
                 inputUrl={imageUrl}
                 maskUrl={maskUrl}
-                resultUrl={resultUrl}
+                resultUrls={resultUrls}
                 onBack={() => setPage('mask')}
                 onRestart={resetFlow}
               />
