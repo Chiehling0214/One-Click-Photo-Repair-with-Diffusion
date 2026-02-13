@@ -98,7 +98,7 @@ export default function PromptPicker({
     emitChange(selected, n)
   }
 
-  const canContinue = selected.length > 0 && count >= 1 && count <= 5
+  const canContinue = count >= 1 && count <= 5
 
   return (
     <div style={styles.shell}>
@@ -137,7 +137,7 @@ export default function PromptPicker({
 
         <div style={styles.chipRow}>
           {selected.length === 0 ? (
-            <div style={styles.emptyHint}>No prompts selected. Click “Add” to open the menu.</div>
+            <div style={styles.emptyHint}>No prompts selected (optional). Click “Add” to open the menu.</div>
           ) : (
             selected.map((p) => (
               <div key={p} style={styles.chip}>
