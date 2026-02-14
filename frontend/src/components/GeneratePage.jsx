@@ -86,7 +86,7 @@ export default function GeneratePage({
             setProgressText(`Generating image ${idx}/${variations}, Step ${global_step}/${total_steps} (${pct}%)`)
           }
           else if (status == 'queued') {
-            setProgressText(`Generating image ${idx}/${variations}, Queued (${pct}%)`)
+            setProgressText(`Generating image ${idx+1}/${variations}, Queued (${pct}%)`)
           }
 
           if (p.status === 'error') {
