@@ -21,12 +21,37 @@ class DiffusionService:
         if self.device == "cuda":
             self.pipe.enable_attention_slicing()
     
-    def inpaint(self, image, mask, prompt, steps=20, guidance=7.5, seed=None, target_size=512):
+    def inpaint(
+        self, 
+        image, 
+        mask, 
+        prompt, 
+        steps=20, 
+        guidance=7.5, 
+        seed=None, 
+        target_size=512, 
+        *,
+        on_progress=None,
+        step_offset=0,
+        total_steps=None
+        ):
         if seed is not None:
             generator = torch.manual_seed(seed)
         else:
             generator = None
         
+        def callback(step: int, timestep: int, latents):
+            if not on_progress:
+                return
+            
+            step_in_img = step + 1
+            global_step = step_offset + step_in_img
+
+            pct = int(global_step / total_steps * 100)
+            pct = max(0, min(100, pct))
+            
+            on_progress(global_step, step_in_img, pct)
+                
         result = self.pipe(
             prompt=prompt,
             image=image,
@@ -35,7 +60,9 @@ class DiffusionService:
             guidance_scale=guidance,
             generator=generator,
             height=target_size,
-            width=target_size
+            width=target_size,
+            callback=callback,
+            callback_steps=1,
         ).images[0]
 
         return result

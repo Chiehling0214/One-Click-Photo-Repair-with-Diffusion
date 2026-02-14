@@ -14,17 +14,20 @@ export default function GeneratePage({
   const [status, setStatus] = useState('idle') // idle | uploading | done | error
   const [error, setError] = useState('')
   const [progressText, setProgressText] = useState('')
+  const [progressPct, setProgressPct] = useState(0)
 
   const canStart = useMemo(() => !!imageFile && !!maskBlob, [imageFile, maskBlob])
 
   useEffect(() => {
     if (!canStart) return
     let cancelled = false
+    const controller = new AbortController()
 
     const run = async () => {
       try {
         setStatus('uploading')
         setError('')
+        setProgressPct(0)
         setProgressText('Uploading image + mask...')
 
         const form = new FormData()
@@ -38,6 +41,7 @@ export default function GeneratePage({
         const res = await fetch(endpoint, {
           method: 'POST',
           body: form,
+          signal: controller.signal,
         })
 
         if (!res.ok) {
@@ -45,43 +49,74 @@ export default function GeneratePage({
           throw new Error(`HTTP ${res.status}: ${t || 'request failed'}`)
         }
 
-        //--------------------------------------------------------
-        // setProgressText('Generating...')
+        const body = await res.json()
+        const jobId = body?.job_id
+        if (!jobId) throw new Error('Missing job_id from backend response')
 
-        // const blob = await res.blob()
-        // const resultUrl = URL.createObjectURL(blob)
-        // const latency = res.headers.get("X-Latency")
+        if (cancelled) return
 
-        // if (cancelled) return
-        // setStatus('done')
-        // // setProgressText('Done')
-        // setProgressText(`Done in ${latency}s`)
-        // onDone?.({ resultUrl })
-        //--------------------------------------------------------
         setProgressText('Generating...')
+        setProgressPct(1)
 
-        const data = await res.json()
-        if (!data?.images?.length) throw new Error('Missing images')
+        // 2) Poll progress
+        const base = endpoint.replace(/\/inpaint$/, '') 
+        const progressUrl = `${base}/progress/${jobId}`
+        const resultUrl = `${base}/result/${jobId}`
 
-        // const resultUrls = data.images.map(b64 => `data:image/png;base64,${b64}`)
-        const resultUrls = data.images.map(b64 => {
-          const byteString = atob(b64)
-          const ab = new ArrayBuffer(byteString.length)
-          const ia = new Uint8Array(ab)
+        while (!cancelled) {
+          await sleep(500)
 
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i)
+          const pr = await fetch(progressUrl, { signal: controller.signal })
+          if (!pr.ok) continue
+          const p = await pr.json()
+
+          if (cancelled) return
+          /* 
+            pct : 總共進行的 %
+            idx : 生成第幾張照片
+            step : 每一張照片的step數
+            global_step : 全部進行的step數 (= idx * 20 + step)    20 : 每張照片會跑的step數，這個之後可以用parameter改
+            total_steps : 整個行程會跑的step數 (= variation * 20)
+            status : 現在的狀態, queued = 準備生成下一張, running = 在生成照片中
+          */
+          const { pct, idx, step, global_step, total_steps, status } = p
+          setProgressPct(pct)
+          console.log(`each step: ${step}`)
+          if (status == 'running') {
+            setProgressText(`Generating image ${idx}/${variations}, Step ${global_step}/${total_steps} (${pct}%)`)
+          }
+          else if (status == 'queued') {
+            setProgressText(`Generating image ${idx}/${variations}, Queued (${pct}%)`)
           }
 
-          const blob = new Blob([ab], { type: 'image/png' })
-          return URL.createObjectURL(blob)
-        })
+          if (p.status === 'error') {
+            throw new Error(p.error || 'Backend error')
+          }
 
-        console.log('resultUrls:', resultUrls)
-        if (cancelled) return
-        setStatus('done')
-        setProgressText(data.latency ? `Done in ${data.latency}s` : 'Done')
-        onDone?.({ resultUrls })
+          if (p.status === 'done') {
+            const rr = await fetch(resultUrl, { signal: controller.signal })
+            if (!rr.ok) throw new Error('Failed to fetch result')
+            const data = await rr.json()
+
+            if (!data?.images?.length) throw new Error('Missing images')
+
+            const urls = data.images.map(b64 => {
+              const byteString = atob(b64)
+              const ab = new ArrayBuffer(byteString.length)
+              const ia = new Uint8Array(ab)
+
+              for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+
+              const blob = new Blob([ab], { type: 'image/png' })
+              return URL.createObjectURL(blob)
+            })
+
+            setStatus('done')
+            setProgressText(data.latency ? `Done in ${data.latency}s` : 'Done')
+            onDone?.({ resultUrls: urls })
+            return
+          }
+        }
       } catch (e) {
         if (cancelled) return
         setStatus('error')
@@ -92,6 +127,7 @@ export default function GeneratePage({
     run()
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [canStart, endpoint, imageFile, maskBlob, onDone, prompts, variations])
 
@@ -169,6 +205,10 @@ async function safeText(res) {
   } catch {
     return ''
   }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
 }
 
 const styles = {

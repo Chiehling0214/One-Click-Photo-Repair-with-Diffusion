@@ -1,9 +1,12 @@
 import base64
 from PIL import Image
 import io
+import uuid
+import asyncio
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from typing import Optional
+from fastapi.concurrency import run_in_threadpool
+from typing import Optional, Callable, Tuple
 import torch
 import time
 
@@ -12,6 +15,7 @@ import time
 from app.utils.resize import fit_to_image, prepare_image_and_mask
 from app.utils.restore import restore_to_origin
 from app.utils.roi import compute_roi_box, paste_with_feather
+from app.state.jobs import JOBS, JobState
 
 router = APIRouter()
 
@@ -28,74 +32,127 @@ async def inpaint(
     num_outputs: int = Form(1, ge=1, le=5),
     seed: Optional[int] = Form(None, ge=0)
 ):
+    job_id = uuid.uuid4().hex
+    JOBS[job_id] = JobState(status="queued", progress=0, message="queued")
+
+    image_bytes = await image.read()
+    mask_bytes = await mask.read()
+
+    async def runner():
+        await run_in_threadpool(
+            _do_job,
+            request,
+            job_id,
+            image_bytes,
+            mask_bytes,
+            prompt,
+            steps,
+            guidance,
+            num_outputs,
+            seed,
+        )
+
+    asyncio.create_task(runner())
+    return {"job_id": job_id}
+
+    
+def _do_job(
+    request: Request,
+    job_id: str,
+    image_bytes: bytes,
+    mask_bytes: bytes,
+    prompt: str,
+    steps: int,
+    guidance: float,
+    num_outputs: int,
+    seed: Optional[int],
+):
+    job = JOBS.get(job_id)
+    if not job:
+        return
+    t0 = time.time()
+    job.status = "starting"
+    job.progress = 1
+    job.updated_at = time.time()
+
     try:
-        t0 = time.time()
         diffusion_service = request.app.state.diffusion_service
-        image_bytes = await image.read()
-        mask_bytes = await mask.read()
 
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         msk = Image.open(io.BytesIO(mask_bytes)).convert("L")
 
         if msk.size == (640, 420) and img.size != (640, 420):
+            job.message = "resizing mask"
+            job.updated_at = time.time()
             msk = fit_to_image(msk, img.width, img.height, 640, 420)
-        # save mask to local
-        img.save("debug_image.png")
-        msk.save("debug_mask.png")
 
-        base_seed = seed if seed is not None else int(time.time())  # 沒給 seed 就用時間當 base
+        base_seed = seed if seed is not None else int(time.time())
         seeds = [base_seed + i for i in range(num_outputs)]
-        print(f"prompt: {prompt}, steps: {steps}, guidance: {guidance}, seed: {seed}")
 
         results_b64 = []
-        
-        for s in seeds:
+
+        total_steps = steps * num_outputs
+        job.total_steps = total_steps
+        job.global_step = 0
+        job.step = 0
+        job.idx = 0
+
+        for idx, s in enumerate(seeds):
+            step_offset = idx * steps
+
+            def make_on_progress(job_ref, idx_ref, total_steps):
+                def _cb(global_step: int, step: int, pct: int):
+                    job_ref.status = 'running'
+                    job_ref.idx = idx_ref
+                    job_ref.step = step
+                    job_ref.global_step = global_step
+                    job_ref.total_steps = total_steps
+                    job_ref.progress = pct
+                    job_ref.updated_at = time.time()
+                return _cb
+
+            on_progress = make_on_progress(job, idx+1, total_steps)
+
+            job.status = 'queued'
+            job.updated_at = time.time()
+
+
             out_img = inpaint_roi_full(
-                img, 
-                msk, 
-                prompt, 
-                diffusion_service, 
-                steps, 
-                guidance, 
-                s, 
-                target=TARGET_SIZE, 
-                margin=192, 
-                feather_px=16
+                img, msk, prompt, diffusion_service,
+                steps, guidance, s,
+                target=TARGET_SIZE, margin=192, feather_px=16,
+                on_progress=on_progress, step_offset=step_offset, total_steps=total_steps
             )
-            
+
             buf = io.BytesIO()
             out_img.save(buf, format="PNG")
-            b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-            results_b64.append(b64)
-            
-        # result_final = inpaint_roi_full(img, msk, prompt, diffusion_service, steps, guidance, seed, target=TARGET_SIZE, margin=192, feather_px=16)
+            results_b64.append(base64.b64encode(buf.getvalue()).decode("utf-8"))
 
-        latency = time.time() - t0
+            job.updated_at = time.time()
 
-        # buf = io.BytesIO()
-        # result_final.save(buf, format="PNG")
-        # buf.seek(0)
+        latency = round(time.time() - t0, 2)
 
-        # response = StreamingResponse(buf, media_type="image/png")
-        # response.headers["X-Target-Size"] =  str(TARGET_SIZE)
-        # response.headers["X-Steps"] = str(steps)
-        # response.headers["X-Guidance"] = str(guidance)
-        # response.headers["X-Seed"] = "" if seed is None else str(seed)
-        # response.headers["X-Latency"] = f"{latency:.2f}"
+        job.status = "done"
+        job.progress = 100
+        job.message = "done"
+        job.images = results_b64
+        job.seeds = seeds
+        job.latency = latency
+        job.updated_at = time.time()
 
-        return {
-            "images": results_b64,
-            "seeds": seeds,
-            "latency": round(latency, 2),
-            "target_size": TARGET_SIZE,
-            "steps": steps,
-            "guidance": guidance
-        }
     except torch.cuda.OutOfMemoryError:
-        raise HTTPException(status_code=507, detail="CUDA out of memory. Try reducing the image size or steps.")
+        job.status = "error"
+        job.error = "CUDA out of memory"
+        job.message = "error"
+        job.updated_at = time.time()
+    except Exception as e:
+        job.status = "error"
+        job.error = str(e)
+        job.message = "error"
+        job.updated_at = time.time()
 
     
-def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, target : int = 512, margin: int = 192, feather_px: int = 16):
+def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, target : int = 512, margin: int = 192, feather_px: int = 16, on_progress: Optional[Callable[[int, str], None]] = None, step_offset: int = 0, total_steps: int = 0):
     box = compute_roi_box(mask_l, margin=margin)
 
     if box is None:
@@ -115,7 +172,10 @@ def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, d
         steps=steps, 
         guidance=guidance, 
         seed=seed, 
-        target_size=target
+        target_size=target,
+        on_progress=on_progress,
+        step_offset=step_offset,
+        total_steps=total_steps,
     )
 
     roi_out = restore_to_origin(roi_out_sq, meta)
@@ -123,3 +183,35 @@ def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, d
     out = paste_with_feather(image_rgb, roi_out, roi_msk, box, feather_px=feather_px)
 
     return out
+
+
+@router.get("/progress/{job_id}")
+def get_progress(job_id: str):
+    job = JOBS.get(job_id)
+    if not job:
+        raise HTTPException(404, "job not found")
+    return {
+        "job_id": job_id,
+        "status": job.status,
+        "pct": job.progress,
+        "message": job.message,
+        "error": job.error,
+        "global_step": job.global_step,
+        "total_steps": job.total_steps,
+        "step": job.step,
+        "idx": job.idx
+    }
+
+@router.get("/result/{job_id}")
+def get_result(job_id: str):
+    job = JOBS.get(job_id)
+    if not job:
+        raise HTTPException(404, "job not found")
+    if job.status != "done":
+        return {"status": job.status}
+    return {
+        "status": "done",
+        "images": job.images,
+        "seeds": job.seeds,
+        "latency": job.latency,
+    }
