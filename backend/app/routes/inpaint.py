@@ -35,13 +35,15 @@ async def inpaint(
     job_id = uuid.uuid4().hex
     JOBS[job_id] = JobState(status="queued", progress=0, message="queued")
 
+    diffusion_service = request.app.state.diffusion_service
+
     image_bytes = await image.read()
     mask_bytes = await mask.read()
 
     async def runner():
         await run_in_threadpool(
             _do_job,
-            request,
+            diffusion_service,
             job_id,
             image_bytes,
             mask_bytes,
@@ -57,7 +59,7 @@ async def inpaint(
 
     
 def _do_job(
-    request: Request,
+    diffusion_service: any,
     job_id: str,
     image_bytes: bytes,
     mask_bytes: bytes,
@@ -76,8 +78,7 @@ def _do_job(
     job.updated_at = time.time()
 
     try:
-        diffusion_service = request.app.state.diffusion_service
-
+        
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         msk = Image.open(io.BytesIO(mask_bytes)).convert("L")
 
