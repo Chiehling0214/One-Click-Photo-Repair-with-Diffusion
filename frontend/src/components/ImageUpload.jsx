@@ -7,6 +7,7 @@ export default function ImageUpload({
   maxSizeMB = 10,
   onChange,      // (file) => void
   onContinue,    // ({ file, previewUrl }) => void
+  onBack,        // optional () => void
 }) {
   const inputRef = useRef(null)
   const [file, setFile] = useState(null)
@@ -47,7 +48,6 @@ export default function ImageUpload({
   )
 
   const onPick = useCallback(() => inputRef.current?.click(), [])
-
   const onInputChange = useCallback(
     (e) => {
       const f = e.target.files?.[0]
@@ -89,85 +89,115 @@ export default function ImageUpload({
   const continueDisabled = !file || !!error
 
   return (
-    <div style={styles.wrap}>
-      <div style={styles.head}>
-        <h2 style={styles.title}>{title}</h2>
-        <p style={styles.subtitle}>{subtitle}</p>
+    <div style={styles.shell}>
+      {/* topRow: matches PromptPicker */}
+      <div style={styles.topRow}>
+        <div>
+          <h2 style={styles.title}>{title}</h2>
+          <p style={styles.subtitle}>{subtitle}</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {onBack ? (
+            <button type="button" style={styles.ghostBtn} onClick={onBack}>
+              Back
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            style={styles.secondaryBtn}
+            onClick={clear}
+            disabled={!file && !previewUrl}
+          >
+            Clear
+          </button>
+
+          <button
+            type="button"
+            style={{ ...styles.primaryBtn, ...(continueDisabled ? styles.btnDisabled : null) }}
+            onClick={() => onContinue?.({ file, previewUrl })}
+            disabled={continueDisabled}
+          >
+            Continue to Mask
+          </button>
+        </div>
       </div>
 
-      <div
-        style={{
-          ...styles.dropzone,
-          ...(isDragging ? styles.dropzoneActive : null),
-        }}
-        onClick={onPick}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        role="button"
-        tabIndex={0}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          onChange={onInputChange}
-          style={{ display: 'none' }}
-        />
+      {/* field: label + content box, matches PromptPicker */}
+      <div style={styles.field}>
+        <div style={styles.fieldLabel}>Image</div>
 
-        {!previewUrl ? (
-          <div style={styles.placeholder}>
-            <div style={styles.icon} aria-hidden="true">⬆️</div>
-            <div style={styles.hintLine}>
-              <strong>Drop an image</strong> or <span style={styles.linkLike}>browse</span>
-            </div>
-            <div style={styles.smallHint}>PNG / JPG / WEBP · Up to {maxSizeMB} MB</div>
-          </div>
-        ) : (
-          <div style={styles.previewWrap}>
-            <img src={previewUrl} alt="Preview" style={styles.previewImg} />
-            <div style={styles.previewMeta}>
-              <div style={styles.fileName} title={file?.name}>{file?.name}</div>
-              <div style={styles.fileInfo}>{(file?.size / (1024 * 1024)).toFixed(2)} MB</div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {error ? <div style={styles.error}>{error}</div> : null}
-
-      <div style={styles.actions}>
-        <button type="button" style={styles.secondaryBtn} onClick={clear} disabled={!file && !previewUrl}>
-          Clear
-        </button>
-
-        <button
-          type="button"
-          style={{ ...styles.primaryBtn, ...(continueDisabled ? styles.btnDisabled : null) }}
-          onClick={() => onContinue?.({ file, previewUrl })}
-          disabled={continueDisabled}
+        <div
+          style={{
+            ...styles.dropzone,
+            ...(isDragging ? styles.dropzoneActive : null),
+          }}
+          onClick={onPick}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          role="button"
+          tabIndex={0}
         >
-          Continue to Mask
-        </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            onChange={onInputChange}
+            style={{ display: 'none' }}
+          />
+
+          {!previewUrl ? (
+            <div style={styles.placeholder}>
+              <div style={styles.icon} aria-hidden="true">⬆️</div>
+              <div style={styles.hintLine}>
+                <strong>Drop an image</strong> or <span style={styles.linkLike}>browse</span>
+              </div>
+              <div style={styles.smallHint}>PNG / JPG / WEBP · Up to {maxSizeMB} MB</div>
+            </div>
+          ) : (
+            <div style={styles.previewWrap}>
+              <img src={previewUrl} alt="Preview" style={styles.previewImg} />
+              <div style={styles.previewMeta}>
+                <div style={styles.fileName} title={file?.name}>{file?.name}</div>
+                <div style={styles.fileInfo}>{(file?.size / (1024 * 1024)).toFixed(2)} MB</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {error ? <div style={styles.error}>{error}</div> : null}
       </div>
     </div>
   )
 }
 
 const styles = {
-  wrap: {
+  // Match PromptPicker shell
+  shell: {
     border: '1px solid rgba(255,255,255,0.14)',
     borderRadius: 18,
     padding: 18,
   },
-  head: { marginBottom: 12 },
+  topRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+  },
   title: { margin: 0, fontSize: 20, letterSpacing: -0.2 },
-  subtitle: { margin: '8px 0 0', opacity: 0.8, lineHeight: 1.6 },
+  subtitle: { margin: '8px 0 0', opacity: 0.8, lineHeight: 1.6, maxWidth: 70 + 'ch' },
 
+  field: { marginTop: 14 },
+  fieldLabel: { fontSize: 13, opacity: 0.8, marginBottom: 10 },
+
+  // Make the dropzone look like PromptPicker's chipRow box language
   dropzone: {
     border: '1px dashed rgba(255,255,255,0.22)',
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 16,                   // same vibe as chipRow
+    padding: 12,                        // similar density
     cursor: 'pointer',
     background: 'rgba(255,255,255,0.03)',
   },
@@ -216,12 +246,7 @@ const styles = {
     fontSize: 13,
   },
 
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 14,
-  },
+  // Buttons match PromptPicker button styling
   primaryBtn: {
     padding: '10px 14px',
     borderRadius: 12,
@@ -239,6 +264,16 @@ const styles = {
     color: 'inherit',
     fontWeight: 700,
     cursor: 'pointer',
+  },
+  ghostBtn: {
+    padding: '10px 14px',
+    borderRadius: 12,
+    border: '1px solid rgba(255,255,255,0.18)',
+    background: 'transparent',
+    color: 'inherit',
+    fontWeight: 700,
+    cursor: 'pointer',
+    opacity: 0.9,
   },
   btnDisabled: { opacity: 0.6, cursor: 'not-allowed' },
 }

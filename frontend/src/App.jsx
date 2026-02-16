@@ -65,7 +65,7 @@ export default function App() {
             </div>
 
             <div className="heroMock">
-              <div className="mockCard" style={{ width: '100%', maxWidth: 420 }}>
+              <div className="mockCard">
                 <div className="mockTop">
                   <div className="dot" />
                   <div className="dot" />
@@ -139,7 +139,7 @@ export default function App() {
             </div>
 
             <div className="heroMock">
-              <div className="mockCard" style={{ width: '100%', maxWidth: 420 }}>
+              <div className="mockCard">
                 <div className="mockTop">
                   <div className="dot" />
                   <div className="dot" />
@@ -217,8 +217,8 @@ export default function App() {
             </div>
   
             <div className="heroMock">
-              <div className="mockCard" style={{ width: '100%', maxWidth: 420 }}>
-                <div className="mockTop">
+            <div className="mockCard">
+              <div className="mockTop">
                   <div className="dot" />
                   <div className="dot" />
                   <div className="dot" />
@@ -279,7 +279,7 @@ export default function App() {
             </div>
 
             <div className="heroMock">
-              <div className="mockCard" style={{ width: '100%', maxWidth: 420 }}>
+              <div className="mockCard">
                 <div className="mockTop">
                   <div className="dot" />
                   <div className="dot" />
@@ -330,7 +330,7 @@ export default function App() {
             </div>
 
             <div className="heroMock">
-              <div className="mockCard" style={{ width: '100%', maxWidth: 420 }}>
+              <div className="mockCard">
                 <div className="mockTop">
                   <div className="dot" />
                   <div className="dot" />
