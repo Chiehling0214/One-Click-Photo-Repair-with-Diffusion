@@ -27,11 +27,18 @@ async def inpaint(
     image: UploadFile = File(...),
     mask: UploadFile = File(...),
     prompt: str = Form("clean background"),
-    steps: int = Form(20, ge=1, le=30),
-    guidance: float = Form(7.5, ge=1.0, le=10.0),
+    steps: int = Form(20, ge=1, le=50),
+    guidance: float = Form(6, ge=1.0, le=10.0),
     num_outputs: int = Form(1, ge=1, le=5),
+    negative_prompt: Optional[str] = Form(None),
+    is_cartoon: Optional[bool] = Form(False),
     seed: Optional[int] = Form(None, ge=0)
 ):
+    if is_cartoon:
+            prompt = f"{prompt}, cartoon style, cel-shading, 2d, vibrant colors"
+            if negative_prompt:
+                negative_prompt = f"{negative_prompt}, photo-realistic, 3d, dull colors"
+
     job_id = uuid.uuid4().hex
     JOBS[job_id] = JobState(status="queued", progress=0, message="queued")
 
@@ -51,6 +58,8 @@ async def inpaint(
             steps,
             guidance,
             num_outputs,
+            negative_prompt,
+            is_cartoon,
             seed,
         )
 
@@ -67,6 +76,8 @@ def _do_job(
     steps: int,
     guidance: float,
     num_outputs: int,
+    negative_prompt: Optional[str],
+    is_cartoon: bool,
     seed: Optional[int],
 ):
     job = JOBS.get(job_id)
@@ -120,7 +131,7 @@ def _do_job(
 
             out_img = inpaint_roi_full(
                 img, msk, prompt, diffusion_service,
-                steps, guidance, s,
+                steps, guidance, s, negative_prompt=negative_prompt,
                 target=TARGET_SIZE, margin=192, feather_px=16,
                 on_progress=on_progress, step_offset=step_offset, total_steps=total_steps
             )
@@ -153,7 +164,7 @@ def _do_job(
         job.updated_at = time.time()
 
     
-def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, target : int = 512, margin: int = 192, feather_px: int = 16, on_progress: Optional[Callable[[int, str], None]] = None, step_offset: int = 0, total_steps: int = 0):
+def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, negative_prompt: Optional[str]=None, target : int = 512, margin: int = 192, feather_px: int = 16, on_progress: Optional[Callable[[int, str], None]] = None, step_offset: int = 0, total_steps: int = 0):
     box = compute_roi_box(mask_l, margin=margin)
 
     if box is None:
@@ -170,6 +181,7 @@ def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, d
         image=roi_img_prepared, 
         mask=roi_msk_prepared, 
         prompt=prompt, 
+        negative_prompt=negative_prompt,
         steps=steps, 
         guidance=guidance, 
         seed=seed, 

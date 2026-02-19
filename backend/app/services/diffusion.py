@@ -25,7 +25,8 @@ class DiffusionService:
         self, 
         image, 
         mask, 
-        prompt, 
+        prompt,
+        negative_prompt=None, 
         steps=20, 
         guidance=7.5, 
         seed=None, 
@@ -54,6 +55,7 @@ class DiffusionService:
                 
         result = self.pipe(
             prompt=prompt,
+            negative_prompt=negative_prompt if negative_prompt else None,
             image=image,
             mask_image=mask,
             num_inference_steps=steps,
