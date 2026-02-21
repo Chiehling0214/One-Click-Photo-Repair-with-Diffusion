@@ -10,8 +10,12 @@ import ResultPage from './components/ResultPage.jsx'
 export default function App() {
   const [page, setPage] = useState('home') // home | upload | mask | prompt | generate | result
 
-  const [prompts, setPrompts] = useState([]) // selected prompts
   const [variations, setVariations] = useState(1) // 1..5
+  const [selectedPrompts, setSelectedPrompts] = useState([]) 
+  const [userPrompt, setUserPrompt] = useState('')
+  const [negativePrompt, setNegativePrompt] = useState('')
+  const [thinkLonger, setThinkLonger] = useState(false)
+  const [finalPrompt, setFinalPrompt] = useState('') // optional but recommended for preview + backend
 
   const [imageFile, setImageFile] = useState(null)
   const [imageUrl, setImageUrl] = useState('')     // preview
@@ -200,18 +204,31 @@ export default function App() {
           <section className="hero">
             <div className="heroCopy">
               <PromptPicker
-                defaultSelected={prompts}
+                defaultSelected={selectedPrompts}
                 defaultCount={variations}
+                defaultUserPrompt={userPrompt}
+                defaultNegativePrompt={negativePrompt}
+                defaultThinkLonger={thinkLonger}
                 maxSelected={12}
-                onChange={({ prompts: ps, count }) => {
-                  setPrompts(ps)
-                  setVariations(count)
+                onChange={(v) => {
+                  const ps = Array.isArray(v?.prompts) ? v.prompts : []
+                  setSelectedPrompts(ps)
+                  setUserPrompt(v?.userPrompt ?? '')
+                  setNegativePrompt(v?.negativePrompt ?? '')
+                  setThinkLonger(Boolean(v?.thinkLonger))
+                  setVariations(Number(v?.count ?? 1))
+                  setFinalPrompt(v?.finalPrompt ?? '')
                 }}
                 onBack={() => setPage('mask')}
-                onContinue={({ prompts: ps, count }) => {
-                  setPrompts(ps)
-                  setVariations(count)
-                  setPage('generate') // ✅ proceed to generate
+                onContinue={(v) => {
+                  const ps = Array.isArray(v?.prompts) ? v.prompts : []
+                  setSelectedPrompts(ps)
+                  setUserPrompt(v?.userPrompt ?? '')
+                  setNegativePrompt(v?.negativePrompt ?? '')
+                  setThinkLonger(Boolean(v?.thinkLonger))
+                  setVariations(Number(v?.count ?? 1))
+                  setFinalPrompt(v?.finalPrompt ?? '')
+                  setPage('generate')
                 }}
               />
             </div>
@@ -231,7 +248,8 @@ export default function App() {
                   <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
                     <div className="pill">Step 3/5: Prompt</div>
                     <div className="pill">Variations: {variations}</div>
-                    <div className="pill">Selected: {prompts.length}</div>
+                    <div className="pill">Selected: {selectedPrompts?.length ?? 0}</div>
+                    <div className="pill">Think longer: {thinkLonger ? 'On' : 'Off'}</div>
                   </div>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
@@ -267,7 +285,9 @@ export default function App() {
                 maskBlob={maskBlob}
                 imagePreviewUrl={imageUrl}
                 maskPreviewUrl={maskUrl}
-                prompts={prompts}
+                finalPrompt={finalPrompt}
+                negativePrompt={negativePrompt}
+                thinkLonger={thinkLonger}
                 variations={variations}
                 endpoint="http://127.0.0.1:8000/inpaint"
                 onBack={() => setPage('prompt')}
@@ -441,7 +461,7 @@ export default function App() {
               <h3 className="cardTitle">Starter</h3>
               <p className="cardText">For quick demos and small projects.</p>
               <p className="price">$0</p>
-              <button className="primaryBtn" onClick={() => setStarted(true)}>
+              <button className="primaryBtn" onClick={() => setPage('upload')}>
                 Start free
               </button>
             </div>
@@ -450,7 +470,7 @@ export default function App() {
               <h3 className="cardTitle">Pro</h3>
               <p className="cardText">For teams shipping consistently.</p>
               <p className="price">$19</p>
-              <button className="primaryBtn" onClick={() => setStarted(true)}>
+              <button className="primaryBtn" onClick={() => setPage('upload')}>
                 Start Pro
               </button>
             </div>

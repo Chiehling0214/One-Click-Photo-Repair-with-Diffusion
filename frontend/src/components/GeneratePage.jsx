@@ -1,15 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 
 export default function GeneratePage({
-  imageFile,     // File
-  maskBlob,      // Blob (png)
+  imageFile,          // File
+  maskBlob,           // Blob (png)
   imagePreviewUrl,
   maskPreviewUrl,
-  prompts = [],
-  variations = 1,
+
+  // New PromptPicker outputs
+  finalPrompt = '',        // string (preferred)
+  negativePrompt = '',     // string
+  thinkLonger = false,     // boolean
+
+  // Backward compatibility (older flow)
+  prompts = [],            // string[]
+  variations = 1,          // number (1..5)
+
   endpoint = 'http://127.0.0.1:8000/inpaint',
-  onBack,        // () => void
-  onDone,        // ({ resultUrl, meta? }) => void
+  onBack,                  // () => void
+  onDone,                  // ({ resultUrls: string[], meta?: any }) => void
 }) {
   const [status, setStatus] = useState('idle') // idle | uploading | done | error
   const [error, setError] = useState('')
@@ -18,8 +26,18 @@ export default function GeneratePage({
 
   const canStart = useMemo(() => !!imageFile && !!maskBlob, [imageFile, maskBlob])
 
+  // Resolve prompt text (new flow preferred)
+  const promptText = useMemo(() => {
+    const fp = (finalPrompt ?? '').trim()
+    if (fp) return fp
+    return (prompts ?? []).join(', ').trim()
+  }, [finalPrompt, prompts])
+
+  const negativeText = useMemo(() => (negativePrompt ?? '').trim(), [negativePrompt])
+
   useEffect(() => {
     if (!canStart) return
+
     let cancelled = false
     const controller = new AbortController()
 
@@ -34,9 +52,11 @@ export default function GeneratePage({
         form.append('image', imageFile)
         form.append('mask', maskBlob, 'mask.png')
 
-        const promptText = prompts.join(', ')
-        form.append('prompt', promptText)
+        // New fields
+        form.append('prompt', promptText) // can be empty (allowed)
+        form.append('negative_prompt', negativeText) // can be empty
         form.append('num_outputs', String(variations))
+        form.append('think_longer', thinkLonger ? '1' : '0')
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -58,8 +78,8 @@ export default function GeneratePage({
         setProgressText('Generating...')
         setProgressPct(1)
 
-        // 2) Poll progress
-        const base = endpoint.replace(/\/inpaint$/, '') 
+        // Poll progress + fetch result
+        const base = endpoint.replace(/\/inpaint\/?$/, '')
         const progressUrl = `${base}/progress/${jobId}`
         const resultUrl = `${base}/result/${jobId}`
 
@@ -68,52 +88,50 @@ export default function GeneratePage({
 
           const pr = await fetch(progressUrl, { signal: controller.signal })
           if (!pr.ok) continue
+
           const p = await pr.json()
-
           if (cancelled) return
-          /* 
-            pct : 總共進行的 %
-            idx : 生成第幾張照片
-            step : 每一張照片的step數
-            global_step : 全部進行的step數 (= idx * 20 + step)    20 : 每張照片會跑的step數，這個之後可以用parameter改
-            total_steps : 整個行程會跑的step數 (= variation * 20)
-            status : 現在的狀態, queued = 準備生成下一張, running = 在生成照片中
+
+          /*
+            Expected progress payload (example):
+              pct: number (0..100)
+              idx: number (0-based or 1-based depending on backend)
+              step: number
+              global_step: number
+              total_steps: number
+              status: 'queued' | 'running' | 'done' | 'error'
+              error?: string
           */
-          const { pct, idx, step, global_step, total_steps, status } = p
-          setProgressPct(pct)
-          console.log(`each step: ${step}`)
-          if (status == 'running') {
-            setProgressText(`Generating image ${idx}/${variations}, Step ${global_step}/${total_steps} (${pct}%)`)
-          }
-          else if (status == 'queued') {
-            setProgressText(`Generating image ${idx+1}/${variations}, Queued (${pct}%)`)
+          const { pct, idx, global_step, total_steps, status: st } = p ?? {}
+          if (typeof pct === 'number') setProgressPct(pct)
+
+          if (st === 'running') {
+            const shownIdx = typeof idx === 'number' ? idx : 0
+            setProgressText(
+              `Generating image ${shownIdx}/${variations} · Step ${global_step}/${total_steps} (${pct}%)`
+            )
+          } else if (st === 'queued') {
+            const shownIdx = typeof idx === 'number' ? idx + 1 : 1
+            setProgressText(`Generating image ${shownIdx}/${variations} · Queued (${pct}%)`)
           }
 
-          if (p.status === 'error') {
-            throw new Error(p.error || 'Backend error')
+          if (p?.status === 'error') {
+            throw new Error(p?.error || 'Backend error')
           }
 
-          if (p.status === 'done') {
+          if (p?.status === 'done') {
             const rr = await fetch(resultUrl, { signal: controller.signal })
             if (!rr.ok) throw new Error('Failed to fetch result')
-            const data = await rr.json()
 
+            const data = await rr.json()
             if (!data?.images?.length) throw new Error('Missing images')
 
-            const urls = data.images.map(b64 => {
-              const byteString = atob(b64)
-              const ab = new ArrayBuffer(byteString.length)
-              const ia = new Uint8Array(ab)
-
-              for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
-
-              const blob = new Blob([ab], { type: 'image/png' })
-              return URL.createObjectURL(blob)
-            })
+            const urls = data.images.map((b64) => b64ToObjectUrl(b64))
 
             setStatus('done')
-            setProgressText(data.latency ? `Done in ${data.latency}s` : 'Done')
-            onDone?.({ resultUrls: urls })
+            setProgressPct(100)
+            setProgressText(data?.latency ? `Done in ${data.latency}s` : 'Done')
+            onDone?.({ resultUrls: urls, meta: { jobId, latency: data?.latency } })
             return
           }
         }
@@ -125,11 +143,22 @@ export default function GeneratePage({
     }
 
     run()
+
     return () => {
       cancelled = true
       controller.abort()
     }
-  }, [canStart, endpoint, imageFile, maskBlob, onDone, prompts, variations])
+  }, [
+    canStart,
+    endpoint,
+    imageFile,
+    maskBlob,
+    promptText,
+    negativeText,
+    thinkLonger,
+    variations,
+    onDone,
+  ])
 
   return (
     <div style={styles.panel}>
@@ -137,12 +166,12 @@ export default function GeneratePage({
         <div>
           <h2 style={styles.h2}>Generating result</h2>
           <p style={styles.p}>
-            We’re sending your image + mask to the backend and waiting for the inpaint result.
+            Sending your image + mask to the backend and waiting for the inpaint result.
           </p>
         </div>
 
         <button onClick={onBack} style={styles.btnGhost} disabled={status === 'uploading'}>
-          Back to mask
+          Back
         </button>
       </div>
 
@@ -166,25 +195,63 @@ export default function GeneratePage({
         </div>
       </div>
 
+      <div style={styles.metaBox}>
+        <div style={styles.metaLine}>
+          <span style={styles.metaKey}>Variations</span>
+          <span style={styles.metaVal}>{variations}</span>
+        </div>
+        <div style={styles.metaLine}>
+          <span style={styles.metaKey}>Think longer</span>
+          <span style={styles.metaVal}>{thinkLonger ? 'On' : 'Off'}</span>
+        </div>
+        <div style={styles.metaLine}>
+          <span style={styles.metaKey}>Prompt</span>
+          <span style={styles.metaVal}>
+            {promptText ? promptText : <span style={{ opacity: 0.7 }}>Empty</span>}
+          </span>
+        </div>
+        <div style={styles.metaLine}>
+          <span style={styles.metaKey}>Negative</span>
+          <span style={styles.metaVal}>
+            {negativeText ? negativeText : <span style={{ opacity: 0.7 }}>Empty</span>}
+          </span>
+        </div>
+      </div>
+
       <div style={styles.statusBox}>
         {status === 'uploading' ? (
           <>
             <div style={styles.spinner} aria-hidden="true" />
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={styles.statusTitle}>Working…</div>
               <div style={styles.statusText}>{progressText}</div>
+
+              <div style={styles.progressOuter} aria-label="progress">
+                <div
+                  style={{
+                    ...styles.progressInner,
+                    width: `${clampPct(progressPct)}%`,
+                  }}
+                />
+              </div>
+              <div style={styles.progressMeta}>{clampPct(progressPct)}%</div>
             </div>
           </>
         ) : status === 'error' ? (
-          <>
+          <div style={{ width: '100%' }}>
             <div style={styles.errorTitle}>Error</div>
             <div style={styles.errorText}>{error}</div>
-          </>
+          </div>
+        ) : status === 'done' ? (
+          <div style={{ width: '100%' }}>
+            <div style={styles.statusTitle}>Done</div>
+            <div style={styles.statusText}>{progressText || 'Completed.'}</div>
+          </div>
         ) : (
-          <>
+          <div style={{ width: '100%' }}>
             <div style={styles.statusTitle}>Ready</div>
             <div style={styles.statusText}>Starting…</div>
-          </>
+          </div>
         )}
       </div>
 
@@ -195,8 +262,26 @@ export default function GeneratePage({
           </button>
         </div>
       ) : null}
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
+}
+
+function b64ToObjectUrl(b64) {
+  // Accept either pure base64 or data URL; normalize to base64 payload
+  const pure = String(b64 || '').includes(',') ? String(b64).split(',')[1] : String(b64 || '')
+  const byteString = atob(pure)
+  const ab = new ArrayBuffer(byteString.length)
+  const ia = new Uint8Array(ab)
+  for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+  const blob = new Blob([ab], { type: 'image/png' })
+  return URL.createObjectURL(blob)
 }
 
 async function safeText(res) {
@@ -209,6 +294,11 @@ async function safeText(res) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms))
+}
+
+function clampPct(n) {
+  const x = Number.isFinite(n) ? n : 0
+  return Math.max(0, Math.min(100, Math.round(x)))
 }
 
 const styles = {
@@ -250,6 +340,24 @@ const styles = {
     border: '1px dashed rgba(255,255,255,0.20)',
   },
 
+  metaBox: {
+    marginTop: 14,
+    borderRadius: 16,
+    border: '1px solid rgba(255,255,255,0.14)',
+    padding: 12,
+    background: 'rgba(255,255,255,0.02)',
+    display: 'grid',
+    gap: 8,
+  },
+  metaLine: {
+    display: 'grid',
+    gridTemplateColumns: '120px 1fr',
+    gap: 10,
+    alignItems: 'baseline',
+  },
+  metaKey: { fontSize: 12, opacity: 0.75, fontWeight: 800 },
+  metaVal: { fontSize: 13, opacity: 0.92, lineHeight: 1.5, wordBreak: 'break-word' },
+
   statusBox: {
     marginTop: 14,
     borderRadius: 16,
@@ -257,11 +365,28 @@ const styles = {
     padding: 14,
     display: 'flex',
     gap: 12,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     background: 'rgba(255,255,255,0.03)',
   },
   statusTitle: { fontWeight: 800 },
   statusText: { opacity: 0.8, marginTop: 2 },
+
+  progressOuter: {
+    marginTop: 10,
+    height: 10,
+    borderRadius: 999,
+    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'rgba(255,255,255,0.04)',
+    overflow: 'hidden',
+  },
+  progressInner: {
+    height: '100%',
+    borderRadius: 999,
+    background: 'rgba(255,255,255,0.35)',
+    width: '0%',
+    transition: 'width 200ms ease',
+  },
+  progressMeta: { marginTop: 6, fontSize: 12, opacity: 0.75 },
 
   spinner: {
     width: 18,
@@ -270,10 +395,11 @@ const styles = {
     border: '2px solid rgba(255,255,255,0.25)',
     borderTopColor: 'rgba(255,255,255,0.85)',
     animation: 'spin 1s linear infinite',
+    marginTop: 2,
   },
 
   errorTitle: { fontWeight: 900, color: '#ffb4b4' },
-  errorText: { marginTop: 6, opacity: 0.9 },
+  errorText: { marginTop: 6, opacity: 0.9, lineHeight: 1.5 },
 
   btnSecondary: {
     padding: '10px 14px',

@@ -128,7 +128,7 @@ export default function MaskEditor({
           </label>
 
           <button onClick={clear} style={btnSecondary}>Clear</button>
-          <button onClick={exportAndNext} style={btnPrimary}>Continue to Generate</button>
+          <button onClick={exportAndNext} style={btnPrimary}>Continue to Prompt</button>
 
           <button onClick={onBack} style={btnGhost}>Back</button>
         </div>
