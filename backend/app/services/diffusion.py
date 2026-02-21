@@ -41,7 +41,7 @@ class DiffusionService:
         else:
             generator = None
         
-        def callback(step: int, timestep: int, latents):
+        def on_step_end(pipe, step: int, timestep: int, callback_kwargs):
             if not on_progress:
                 return
             
@@ -52,6 +52,7 @@ class DiffusionService:
             pct = max(0, min(100, pct))
             
             on_progress(global_step, step_in_img, pct)
+            return callback_kwargs
                 
         result = self.pipe(
             prompt=prompt,
@@ -63,8 +64,7 @@ class DiffusionService:
             generator=generator,
             height=target_size,
             width=target_size,
-            callback=callback,
-            callback_steps=1,
+            callback_on_step_end=on_step_end,
         ).images[0]
 
         return result

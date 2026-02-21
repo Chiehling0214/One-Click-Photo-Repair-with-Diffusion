@@ -17,6 +17,7 @@ from app.utils.resize import fit_to_image, prepare_image_and_mask
 from app.utils.restore import restore_to_origin
 from app.utils.roi import compute_roi_box, paste_with_feather
 from app.state.jobs import JOBS, JobState
+from app.services.cartoon import CartoonConfig, opencv_inpaint_fill, hybrid_prepare_image
 
 router = APIRouter()
 
@@ -32,16 +33,13 @@ async def inpaint(
     guidance: float = Form(6, ge=1.0, le=10.0),
     num_outputs: int = Form(1, ge=1, le=5),
     negative_prompt: Optional[str] = Form(None),
-    is_cartoon: Optional[bool] = Form(False),
+    # is_cartoon: Optional[bool] = Form(False),
+    mode: str = Form("normal"), # fill / fill_gen / normal
     think_longer: Optional[bool] = Form(False),
     seed: Optional[int] = Form(None, ge=0)
 ):
     
     print(negative_prompt)
-    if is_cartoon:
-            prompt = f"{prompt}, cartoon style, cel-shading, 2d, vibrant colors"
-            if negative_prompt:
-                negative_prompt = f"{negative_prompt}, photo-realistic, 3d, dull colors"
 
     job_id = uuid.uuid4().hex
     JOBS[job_id] = JobState(status="queued", progress=0, message="queued")
@@ -66,7 +64,7 @@ async def inpaint(
                 guidance,
                 num_outputs,
                 negative_prompt,
-                is_cartoon,
+                mode,
                 seed,
             )
         except Exception as e:
@@ -92,7 +90,8 @@ def _do_job(
     guidance: float,
     num_outputs: int,
     negative_prompt: Optional[str],
-    is_cartoon: bool,
+    # is_cartoon: bool,
+    mode: str,
     seed: Optional[int],
 ):
     job = JOBS.get(job_id)
@@ -145,8 +144,9 @@ def _do_job(
 
 
             out_img = inpaint_roi_full(
-                img, msk, prompt, diffusion_service,
-                steps, guidance, s, negative_prompt=negative_prompt,
+                image_rgb=img, mask_l=msk, prompt=prompt, diffusion_service=diffusion_service,
+                steps=steps, guidance=guidance, seed=s, negative_prompt=negative_prompt,
+                mode=mode,
                 target=TARGET_SIZE, margin=192, feather_px=16,
                 on_progress=on_progress, step_offset=step_offset, total_steps=total_steps
             )
@@ -179,7 +179,7 @@ def _do_job(
         job.updated_at = time.time()
 
     
-def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, negative_prompt: Optional[str]=None, target : int = 512, margin: int = 192, feather_px: int = 16, on_progress: Optional[Callable[[int, str], None]] = None, step_offset: int = 0, total_steps: int = 0):
+def inpaint_roi_full(*, image_rgb: Image.Image, mask_l: Image.Image, prompt: str, diffusion_service, steps: int = 20, guidance: float=7.5, seed: Optional[int]=None, negative_prompt: Optional[str]=None, target : int = 512, margin: int = 192, feather_px: int = 16, on_progress: Optional[Callable[[int, str], None]] = None, step_offset: int = 0, total_steps: int = 0, mode: str = "hybrid") -> Image.Image:
     box = compute_roi_box(mask_l, margin=margin)
 
     if box is None:
@@ -190,7 +190,38 @@ def inpaint_roi_full(image_rgb: Image.Image, mask_l: Image.Image, prompt: str, d
     roi_img = image_rgb.crop(box)
     roi_msk = mask_l.crop(box)
 
-    roi_img_prepared, roi_msk_prepared, meta = prepare_image_and_mask(roi_img, roi_msk, max_side=768, target=target)
+    if mode == "fill":
+        cfg = CartoonConfig(method="telea", radius=7)
+        roi_filled = opencv_inpaint_fill(roi_img, roi_msk, cfg)
+
+        # 直接貼回去（用 feather）
+        return paste_with_feather(image_rgb, roi_filled, roi_msk, box, feather_px=feather_px)
+    
+    if mode == "gen":
+        cfg = CartoonConfig(method="telea", radius=7)
+        roi_filled = hybrid_prepare_image(roi_img, roi_msk, cfg)
+
+        roi_img_prepared, roi_msk_prepared, meta = prepare_image_and_mask(
+            roi_filled, roi_msk, max_side=target, target=target
+        )
+        
+        roi_out_sq = diffusion_service.inpaint(
+            image=roi_img_prepared,
+            mask=roi_msk_prepared,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            steps=steps,
+            guidance=guidance,
+            seed=seed,
+            target_size=target,
+            on_progress=on_progress,
+            step_offset=step_offset,
+            total_steps=total_steps,
+        )
+        roi_out = restore_to_origin(roi_out_sq, meta)
+        return paste_with_feather(image_rgb, roi_out, roi_msk, box, feather_px=feather_px)
+    
+    roi_img_prepared, roi_msk_prepared, meta = prepare_image_and_mask(roi_img, roi_msk, max_side=target, target=target)
 
     roi_out_sq = diffusion_service.inpaint(
         image=roi_img_prepared, 
