@@ -1,4 +1,5 @@
 import base64
+import traceback
 from PIL import Image
 import io
 import uuid
@@ -32,8 +33,11 @@ async def inpaint(
     num_outputs: int = Form(1, ge=1, le=5),
     negative_prompt: Optional[str] = Form(None),
     is_cartoon: Optional[bool] = Form(False),
+    think_longer: Optional[bool] = Form(False),
     seed: Optional[int] = Form(None, ge=0)
 ):
+    
+    print(negative_prompt)
     if is_cartoon:
             prompt = f"{prompt}, cartoon style, cel-shading, 2d, vibrant colors"
             if negative_prompt:
@@ -46,22 +50,33 @@ async def inpaint(
 
     image_bytes = await image.read()
     mask_bytes = await mask.read()
+    if think_longer:
+        steps = 40
 
     async def runner():
-        await run_in_threadpool(
-            _do_job,
-            diffusion_service,
-            job_id,
-            image_bytes,
-            mask_bytes,
-            prompt,
-            steps,
-            guidance,
-            num_outputs,
-            negative_prompt,
-            is_cartoon,
-            seed,
-        )
+        try:
+            await run_in_threadpool(
+                _do_job,
+                diffusion_service,
+                job_id,
+                image_bytes,
+                mask_bytes,
+                prompt,
+                steps,
+                guidance,
+                num_outputs,
+                negative_prompt,
+                is_cartoon,
+                seed,
+            )
+        except Exception as e:
+            print(f"Error in job {job_id}: {e}")
+            traceback.print_exc()
+            job = JOBS.get(job_id)
+            if job:
+                job.status = "error"
+                job.error = str(e)
+                job.updated_at = time.time()
 
     asyncio.create_task(runner())
     return {"job_id": job_id}
