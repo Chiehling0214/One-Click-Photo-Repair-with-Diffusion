@@ -25,9 +25,12 @@ export default function App() {
 
   const features = useMemo(
     () => [
-      { title: 'Fast setup', desc: 'Go from zero to value in minutes with a clean, guided flow.' },
-      { title: 'Smart defaults', desc: 'Opinionated presets so you don’t waste time on configuration.' },
-      { title: 'Shareable results', desc: 'Export or share outputs with a single link.' },
+      { title: 'Guided 5-Step Flow', desc: 'A frictionless wizard (Upload → Mask → Prompt → Generate → Result) that keeps users moving and reduces setup mistakes.' },
+      { title: 'Precision Mask Edito', desc: 'Paint exactly what should be changed, with a clear mask preview before you generate—no guessing.'},
+      { title: 'Preset Prompt Library', desc: 'Curated prompt categories (General / Outdoor / Indoor / Quality Boost) to get strong results without prompt engineering.'}, 
+      { title: 'Custom Prompt + Live Preview', desc: 'Add your own text prompt and see the final combined prompt immediately, so you know exactly what the backend receives.'},
+      { title: 'Negative Prompt Support', desc: 'Tell the model what to avoid (e.g., text, watermark, artifacts) for cleaner, more controlled outputs.'},
+      { title: 'Multi-Variation Generation + “Think Longer” Toggle', desc: 'Generate 1–5 variations per request, and optionally enable “Think longer” for higher-quality/slow mode (backend-dependent).'}
     ],
     []
   )
@@ -374,9 +377,22 @@ export default function App() {
   }
 
   // ========= Home page =========
+  // ========= Home page =========
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className="app-shell homeShell">
+      {/* Animated background */}
+      <div className="bgFx" aria-hidden="true">
+        <div className="blob blob1" />
+        <div className="blob blob2" />
+        <div className="blob blob3" />
+        <div className="sparkles">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span key={i} className="spark" style={{ '--i': i }} />
+          ))}
+        </div>
+      </div>
+
+      <header className="topbar topbarGlass">
         <div className="brand">
           <span className="brandMark" aria-hidden="true">◆</span>
           <span className="brandName">AppName</span>
@@ -389,18 +405,28 @@ export default function App() {
       </header>
 
       <main className="main">
-        <section className="hero">
+        <section className="hero heroDynamic">
           <div className="heroCopy">
-            <h1 className="title">Inpaint faster. Ship better visuals.</h1>
+            <div className="badgeRow">
+              <span className="badge">No credit card</span>
+              <span className="badge">Export-ready</span>
+              <span className="badge">Built for demos</span>
+            </div>
+
+            <h1 className="title titleDynamic">
+              Inpaint faster. <span className="titleGlow">Ship better visuals.</span>
+            </h1>
+
             <p className="subtitle">
               AppName is a lightweight product front-end for image inpainting workflows:
-              upload → mask → generate → share.
+              upload → mask → prompt → generate → share.
             </p>
 
             <div className="ctaRow">
-              <button className="primaryBtn" onClick={() => setPage('upload')}>
+              <button className="primaryBtn primaryPulse" onClick={() => setPage('upload')}>
                 Start using AppName
               </button>
+
               <button
                 className="secondaryBtn"
                 onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
@@ -409,34 +435,49 @@ export default function App() {
               </button>
             </div>
 
-            <div className="metaRow">
-              <span className="pill">No credit card</span>
-              <span className="pill">Export-ready</span>
-              <span className="pill">Built for demos</span>
+            <div className="trustRow">
+              <span className="trustItem">• Guided flow</span>
+              <span className="trustItem">• Prompt + negative prompt</span>
+              <span className="trustItem">• 1–5 variations</span>
             </div>
           </div>
 
-          <div className="heroMock">
-            <div className="mockCard">
-              <div className="mockTop">
-                <div className="dot" />
-                <div className="dot" />
-                <div className="dot" />
-              </div>
-              <div className="mockBody">
-                <div className="mockLine strong" />
-                <div className="mockLine" />
-                <div className="mockLine" />
-                <div className="mockGrid">
-                  <div className="mockTile" />
-                  <div className="mockTile" />
-                  <div className="mockTile" />
+          <div className="heroMock heroMockDynamic">
+            <div className="mockCard mockFloat" style={{ perspective: 900 }}>
+              <div className="mockCardInner">
+                <div className="mockTop">
+                  <div className="dot" />
+                  <div className="dot" />
+                  <div className="dot" />
                 </div>
-              </div>
-              <div className="mockFooter">
-                <button className="mockBtn" type="button" onClick={() => setPage('upload')}>
-                  Try it
-                </button>
+
+                <div className="mockBody">
+                  <div className="mockLine strong" />
+                  <div className="mockLine" />
+                  <div className="mockLine" />
+
+                  <div className="mockGrid">
+                    <div className="mockTile mockTileAnim" />
+                    <div className="mockTile mockTileAnim" />
+                    <div className="mockTile mockTileAnim" />
+                  </div>
+
+                  <div className="miniSteps">
+                    {['Upload', 'Mask', 'Prompt', 'Generate', 'Result'].map((s, idx) => (
+                      <div key={s} className="miniStep" style={{ '--d': `${idx * 120}ms` }}>
+                        <span className="miniDot" />
+                        <span>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mockFooter">
+                  <button className="mockBtn" type="button" onClick={() => setPage('upload')}>
+                    Try it
+                  </button>
+                  <span className="mockHint">~ 10s to first result</span>
+                </div>
               </div>
             </div>
           </div>
@@ -444,9 +485,9 @@ export default function App() {
 
         <section id="features" className="section">
           <h2 className="sectionTitle">Features</h2>
-          <div className="grid">
-            {features.map((f) => (
-              <div key={f.title} className="card">
+          <div className="grid gridAnim">
+            {features.map((f, idx) => (
+              <div key={f.title} className="card cardAnim" style={{ '--delay': `${idx * 90}ms` }}>
                 <h3 className="cardTitle">{f.title}</h3>
                 <p className="cardText">{f.desc}</p>
               </div>
@@ -457,7 +498,7 @@ export default function App() {
         <section id="pricing" className="section">
           <h2 className="sectionTitle">Pricing</h2>
           <div className="grid">
-            <div className="card">
+            <div className="card cardAnim" style={{ '--delay': `0ms` }}>
               <h3 className="cardTitle">Starter</h3>
               <p className="cardText">For quick demos and small projects.</p>
               <p className="price">$0</p>
@@ -466,7 +507,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="card highlight">
+            <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
               <h3 className="cardTitle">Pro</h3>
               <p className="cardText">For teams shipping consistently.</p>
               <p className="price">$19</p>
@@ -475,7 +516,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="card">
+            <div className="card cardAnim" style={{ '--delay': `180ms` }}>
               <h3 className="cardTitle">Enterprise</h3>
               <p className="cardText">SSO, SLAs, custom deployments.</p>
               <p className="price">Let’s talk</p>
