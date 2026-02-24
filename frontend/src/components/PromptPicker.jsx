@@ -95,7 +95,7 @@ export default function PromptPicker({
       mode, 
       finalPrompt,
     })
-  }, [selected, count, userPrompt, negativePrompt, thinkLonger, finalPrompt, onChange])
+  }, [selected, count, userPrompt, negativePrompt, thinkLonger, finalPrompt, onChange, mode])
 
   const allItems = useMemo(() => {
     const out = []

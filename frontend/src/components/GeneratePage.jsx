@@ -14,6 +14,7 @@ export default function GeneratePage({
   // Backward compatibility (older flow)
   prompts = [],            // string[]
   variations = 1,          // number (1..5)
+  mode = 'normal',         // string ('normal' | 'gen' | 'fill')
 
   endpoint = 'http://127.0.0.1:8000/inpaint',
   onBack,                  // () => void
@@ -57,6 +58,7 @@ export default function GeneratePage({
         form.append('negative_prompt', negativeText) // can be empty
         form.append('num_outputs', String(variations))
         form.append('think_longer', thinkLonger ? '1' : '0')
+        form.append('mode', mode)
 
         const res = await fetch(endpoint, {
           method: 'POST',

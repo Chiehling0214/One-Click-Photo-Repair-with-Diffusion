@@ -16,6 +16,7 @@ export default function App() {
   const [negativePrompt, setNegativePrompt] = useState('')
   const [thinkLonger, setThinkLonger] = useState(false)
   const [finalPrompt, setFinalPrompt] = useState('') // optional but recommended for preview + backend
+  const [mode, setMode] = useState('normal')
 
   const [imageFile, setImageFile] = useState(null)
   const [imageUrl, setImageUrl] = useState('')     // preview
@@ -231,6 +232,7 @@ export default function App() {
                   setThinkLonger(Boolean(v?.thinkLonger))
                   setVariations(Number(v?.count ?? 1))
                   setFinalPrompt(v?.finalPrompt ?? '')
+                  setMode(v?.mode ?? 'normal')
                   setPage('generate')
                 }}
               />
@@ -292,6 +294,7 @@ export default function App() {
                 negativePrompt={negativePrompt}
                 thinkLonger={thinkLonger}
                 variations={variations}
+                mode={mode}
                 endpoint="http://127.0.0.1:8000/inpaint"
                 onBack={() => setPage('prompt')}
                 onDone={({ resultUrls: urls }) => {
