@@ -377,7 +377,6 @@ export default function App() {
   }
 
   // ========= Home page =========
-  // ========= Home page =========
   return (
     <div className="app-shell homeShell">
       {/* Animated background */}
