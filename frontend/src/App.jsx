@@ -335,7 +335,7 @@ export default function App() {
                   <div className="mockLine" />
                   <div className="mockLine" />
                   <p className="cardText" style={{ marginTop: 12 }}>
-                    Waiting for backend. If your backend is slow, consider returning a jobId and polling.
+                    Waiting for backend.
                   </p>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
@@ -383,7 +383,7 @@ export default function App() {
                 </div>
                 <div className="mockBody">
                   <p className="cardText" style={{ marginTop: 4 }}>
-                    You can add “Download” / “Share link” / “Regenerate with new prompt” here.
+                    You can download the result here.
                   </p>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
