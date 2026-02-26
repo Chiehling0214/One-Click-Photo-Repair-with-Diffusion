@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 
+import DemoShowcase from './components/DemoShowcase.jsx'
 import ImageUpload from './components/ImageUpload.jsx'
 import MaskEditor from './components/MaskEditor.jsx'
 import PromptPicker from './components/PromptPicker.jsx'
@@ -26,12 +27,30 @@ export default function App() {
 
   const features = useMemo(
     () => [
-      { title: 'Guided 5-Step Flow', desc: 'A frictionless wizard (Upload → Mask → Prompt → Generate → Result) that keeps users moving and reduces setup mistakes.' },
-      { title: 'Precision Mask Edito', desc: 'Paint exactly what should be changed, with a clear mask preview before you generate—no guessing.'},
-      { title: 'Preset Prompt Library', desc: 'Curated prompt categories (General / Outdoor / Indoor / Quality Boost) to get strong results without prompt engineering.'}, 
-      { title: 'Custom Prompt + Live Preview', desc: 'Add your own text prompt and see the final combined prompt immediately, so you know exactly what the backend receives.'},
-      { title: 'Negative Prompt Support', desc: 'Tell the model what to avoid (e.g., text, watermark, artifacts) for cleaner, more controlled outputs.'},
-      { title: 'Multi-Variation Generation + “Think Longer” Toggle', desc: 'Generate 1–5 variations per request, and optionally enable “Think longer” for higher-quality/slow mode (backend-dependent).'}
+      {
+        title: 'From image to result, fast',
+        desc: 'A guided 5-step flow keeps every edit clear and focused, so users can move from upload to final output without getting lost.',
+      },
+      {
+        title: 'Edit only what matters',
+        desc: 'Use precise masking to target the exact area you want to change—giving you cleaner edits and far less guesswork.',
+      },
+      {
+        title: 'Smarter prompt control',
+        desc: 'Mix preset suggestions, custom prompts, and negative prompts in one streamlined workflow for more intentional results.',
+      },
+      {
+        title: 'Built for better outputs',
+        desc: 'Choose between normal, fill, and gen modes to match the task—whether you want quick cleanup or more guided generation.',
+      },
+      {
+        title: 'See progress in real time',
+        desc: 'Track the generation process live with clear status feedback, so the experience feels responsive even when the backend takes time.',
+      },
+      {
+        title: 'Create more, compare faster',
+        desc: 'Generate multiple variations in one run and review outputs side by side, making it easier to pick the strongest result quickly.',
+      },
     ],
     []
   )
@@ -497,13 +516,15 @@ export default function App() {
           </div>
         </section>
 
+        <DemoShowcase />
+
         <section id="pricing" className="section">
-          <h2 className="sectionTitle">Pricing</h2>
+          <h2 className="sectionTitle">Plan Preview</h2>
           <div className="grid">
             <div className="card cardAnim" style={{ '--delay': `0ms` }}>
               <h3 className="cardTitle">Starter</h3>
-              <p className="cardText">For quick demos and small projects.</p>
-              <p className="price">$0</p>
+              <p className="cardText">Core workflow access for trying the product and testing the inpainting flow.</p>
+              <p className="price">Available now</p>
               <button className="primaryBtn" onClick={() => setPage('upload')}>
                 Start free
               </button>
@@ -511,19 +532,19 @@ export default function App() {
 
             <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
               <h3 className="cardTitle">Pro</h3>
-              <p className="cardText">For teams shipping consistently.</p>
-              <p className="price">$19</p>
-              <button className="primaryBtn" onClick={() => setPage('upload')}>
-                Start Pro
+              <p className="cardText">Planned upgrades for more control, better output tuning, and a more advanced editing workflow.</p>
+              <p className="price">Planned</p>
+              <button className="primaryBtn" disabled>
+                Coming soon
               </button>
             </div>
 
-            <div className="card cardAnim" style={{ '--delay': `180ms` }}>
-              <h3 className="cardTitle">Enterprise</h3>
-              <p className="cardText">SSO, SLAs, custom deployments.</p>
-              <p className="price">Let’s talk</p>
-              <button className="secondaryBtn" onClick={() => alert('TODO: contact sales')}>
-                Contact sales
+            <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
+              <h3 className="cardTitle">Advanced</h3>
+              <p className="cardText">Future expansion for more customization, extended workflows, and broader use cases.</p>
+              <p className="price">Future</p>
+              <button className="secondaryBtn" disabled>
+                Coming later
               </button>
             </div>
           </div>
@@ -535,13 +556,39 @@ export default function App() {
             <details className="faqItem">
               <summary>Does this include the backend model?</summary>
               <p className="cardText">
-                Not yet—this is the front page + app entry UI. Hook buttons to your API/router next.
+                The current version focuses on the front-end workflow and user experience. It is designed to connect to a backend inpainting service, but the exact model and deployment setup can be integrated separately depending on your project.
               </p>
             </details>
             <details className="faqItem">
-              <summary>How do I connect it to the real app?</summary>
+              <summary>Can I control what gets changed in the image?</summary>
               <p className="cardText">
-                Replace the <code>started</code> state with routing (React Router) and navigate to <code>/app</code>.
+                Yes. The workflow includes a mask editing step so you can mark the exact area you want to modify before generation. This helps keep the rest of the image untouched and gives you more precise control over the result.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>What is the difference between normal, fill, and gen mode?</summary>
+              <p className="cardText">
+                Normal follows the standard generation flow.  
+                Fill is intended for simpler color or content filling without relying heavily on prompt guidance.
+                Gen is designed for a two-stage process where filling happens first, followed by prompt-guided generation.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>Can I use my own prompt instead of preset suggestions?</summary>
+              <p className="cardText">
+                Yes. You can select suggested prompt chips, type your own custom prompt, or combine both. This makes it easier to start quickly while still allowing more specific control when needed.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>What is a negative prompt used for?</summary>
+              <p className="cardText">
+                A negative prompt tells the generation system what to avoid, such as text, watermark-like artifacts, or unwanted objects. It helps reduce noise and improves the consistency of the final output.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>How long does generation take?</summary>
+              <p className="cardText">
+                Generation time can vary based on the complexity of the edit, the number of variations, and the backend model's performance. The interface provides real-time status updates during generation to keep you informed of the progress.
               </p>
             </details>
           </div>

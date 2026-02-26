@@ -641,3 +641,184 @@
   transform: translateY(-4px);
   transition: transform 160ms ease;
 }
+
+/* ===== Product Story Flow ===== */
+.productStoryFlow {
+  margin: 84px 0 72px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 42px;
+}
+
+.productStoryFlowIntro {
+  max-width: 860px;
+}
+
+.productStoryFlowLabel {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.58;
+}
+
+.productStoryFlowHeading {
+  margin: 0;
+  font-size: clamp(34px, 4.4vw, 62px);
+  line-height: 1.03;
+  letter-spacing: -1.2px;
+  max-width: 11ch;
+}
+
+.productStoryFlowList {
+  display: flex;
+  flex-direction: column;
+  gap: 84px;
+}
+
+.storySection {
+  display: grid;
+  grid-template-columns: 0.88fr 1.12fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.storySection.is-reverse {
+  grid-template-columns: 1.12fr 0.88fr;
+}
+
+.storySection.is-reverse .storySectionCopy {
+  order: 2;
+}
+
+.storySection.is-reverse .storySectionVisual {
+  order: 1;
+}
+
+/* Initial hidden state */
+.storySectionCopy,
+.storySectionVisual {
+  opacity: 0;
+  transform: translateY(36px);
+  transition:
+    opacity 700ms ease,
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 700ms ease;
+  filter: blur(8px);
+  will-change: opacity, transform, filter;
+}
+
+/* Visible */
+.storySection.is-visible .storySectionCopy,
+.storySection.is-visible .storySectionVisual {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* Slight stagger */
+.storySection.is-visible .storySectionCopy {
+  transition-delay: 40ms;
+}
+
+.storySection.is-visible .storySectionVisual {
+  transition-delay: 140ms;
+}
+
+.storySectionEyebrow {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.62;
+}
+
+.storySectionTitle {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.8px;
+  max-width: 11ch;
+  text-wrap: balance;
+}
+
+.storySectionDesc {
+  margin: 16px 0 0 0;
+  font-size: 17px;
+  line-height: 1.78;
+  opacity: 0.82;
+  max-width: 40ch;
+}
+
+.storySectionVisual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.storySectionImage {
+  width: 100%;
+  max-width: 760px;
+  max-height: 56vh;
+  object-fit: contain;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.02);
+}
+
+@media (max-width: 1080px) {
+  .productStoryFlow {
+    gap: 32px;
+  }
+
+  .productStoryFlowHeading {
+    max-width: none;
+  }
+
+  .productStoryFlowList {
+    gap: 64px;
+  }
+
+  .storySection,
+  .storySection.is-reverse {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .storySection.is-reverse .storySectionCopy,
+  .storySection.is-reverse .storySectionVisual {
+    order: initial;
+  }
+
+  .storySectionImage {
+    max-width: 680px;
+    max-height: 42vh;
+  }
+}
+
+@media (max-width: 700px) {
+  .productStoryFlow {
+    margin: 56px 0 44px 0;
+  }
+
+  .productStoryFlowHeading {
+    font-size: clamp(28px, 8vw, 42px);
+  }
+
+  .productStoryFlowList {
+    gap: 52px;
+  }
+
+  .storySectionTitle {
+    max-width: none;
+  }
+
+  .storySectionDesc {
+    font-size: 15px;
+    line-height: 1.68;
+  }
+
+  .storySectionImage {
+    max-width: 100%;
+    max-height: 36vh;
+  }
+}
