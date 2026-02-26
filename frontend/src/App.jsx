@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 
+import DemoShowcase from './components/DemoShowcase.jsx'
 import ImageUpload from './components/ImageUpload.jsx'
 import MaskEditor from './components/MaskEditor.jsx'
 import PromptPicker from './components/PromptPicker.jsx'
@@ -16,6 +17,7 @@ export default function App() {
   const [negativePrompt, setNegativePrompt] = useState('')
   const [thinkLonger, setThinkLonger] = useState(false)
   const [finalPrompt, setFinalPrompt] = useState('') // optional but recommended for preview + backend
+  const [mode, setMode] = useState('normal')
 
   const [imageFile, setImageFile] = useState(null)
   const [imageUrl, setImageUrl] = useState('')     // preview
@@ -25,9 +27,30 @@ export default function App() {
 
   const features = useMemo(
     () => [
-      { title: 'Fast setup', desc: 'Go from zero to value in minutes with a clean, guided flow.' },
-      { title: 'Smart defaults', desc: 'Opinionated presets so you don’t waste time on configuration.' },
-      { title: 'Shareable results', desc: 'Export or share outputs with a single link.' },
+      {
+        title: 'From image to result, fast',
+        desc: 'A guided 5-step flow keeps every edit clear and focused, so users can move from upload to final output without getting lost.',
+      },
+      {
+        title: 'Edit only what matters',
+        desc: 'Use precise masking to target the exact area you want to change—giving you cleaner edits and far less guesswork.',
+      },
+      {
+        title: 'Smarter prompt control',
+        desc: 'Mix preset suggestions, custom prompts, and negative prompts in one streamlined workflow for more intentional results.',
+      },
+      {
+        title: 'Built for better outputs',
+        desc: 'Choose between normal, fill, and gen modes to match the task—whether you want quick cleanup or more guided generation.',
+      },
+      {
+        title: 'See progress in real time',
+        desc: 'Track the generation process live with clear status feedback, so the experience feels responsive even when the backend takes time.',
+      },
+      {
+        title: 'Create more, compare faster',
+        desc: 'Generate multiple variations in one run and review outputs side by side, making it easier to pick the strongest result quickly.',
+      },
     ],
     []
   )
@@ -48,7 +71,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('home')}>Back to home</button>
         </header>
@@ -122,7 +145,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('upload')}>Back</button>
         </header>
@@ -193,7 +216,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('mask')}>
             Back to mask
@@ -228,6 +251,7 @@ export default function App() {
                   setThinkLonger(Boolean(v?.thinkLonger))
                   setVariations(Number(v?.count ?? 1))
                   setFinalPrompt(v?.finalPrompt ?? '')
+                  setMode(v?.mode ?? 'normal')
                   setPage('generate')
                 }}
               />
@@ -270,10 +294,10 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
-          <button className="ghostBtn" onClick={() => setPage('mask')}>
-            Back to mask
+          <button className="ghostBtn" onClick={() => setPage('prompt')}>
+            Back to prompt
           </button>
         </header>
 
@@ -289,6 +313,7 @@ export default function App() {
                 negativePrompt={negativePrompt}
                 thinkLonger={thinkLonger}
                 variations={variations}
+                mode={mode}
                 endpoint="http://127.0.0.1:8000/inpaint"
                 onBack={() => setPage('prompt')}
                 onDone={({ resultUrls: urls }) => {
@@ -310,7 +335,7 @@ export default function App() {
                   <div className="mockLine" />
                   <div className="mockLine" />
                   <p className="cardText" style={{ marginTop: 12 }}>
-                    Waiting for backend. If your backend is slow, consider returning a jobId and polling.
+                    Waiting for backend.
                   </p>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
@@ -332,7 +357,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('home')}>Home</button>
         </header>
@@ -358,7 +383,7 @@ export default function App() {
                 </div>
                 <div className="mockBody">
                   <p className="cardText" style={{ marginTop: 4 }}>
-                    You can add “Download” / “Share link” / “Regenerate with new prompt” here.
+                    You can download the result here.
                   </p>
                 </div>
                 <div className="mockFooter" style={{ justifyContent: 'space-between' }}>
@@ -375,32 +400,54 @@ export default function App() {
 
   // ========= Home page =========
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className="app-shell homeShell">
+      {/* Animated background */}
+      <div className="bgFx" aria-hidden="true">
+        <div className="blob blob1" />
+        <div className="blob blob2" />
+        <div className="blob blob3" />
+        <div className="sparkles">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span key={i} className="spark" style={{ '--i': i }} />
+          ))}
+        </div>
+      </div>
+
+      <header className="topbar topbarGlass">
         <div className="brand">
           <span className="brandMark" aria-hidden="true">◆</span>
-          <span className="brandName">AppName</span>
+          <span className="brandName">Inpaintly</span>
         </div>
         <nav className="nav">
           <a className="navLink" href="#features">Features</a>
-          <a className="navLink" href="#pricing">Pricing</a>
+          <a className="navLink" href="#pricing">Plan Preview</a>
           <a className="navLink" href="#faq">FAQ</a>
         </nav>
       </header>
 
       <main className="main">
-        <section className="hero">
+        <section className="hero heroDynamic">
           <div className="heroCopy">
-            <h1 className="title">Inpaint faster. Ship better visuals.</h1>
+            <div className="badgeRow">
+              <span className="badge">No credit card</span>
+              <span className="badge">Export-ready</span>
+              <span className="badge">Built for demos</span>
+            </div>
+
+            <h1 className="title titleDynamic">
+              Inpaint faster. <span className="titleGlow">Ship better visuals.</span>
+            </h1>
+
             <p className="subtitle">
-              AppName is a lightweight product front-end for image inpainting workflows:
-              upload → mask → generate → share.
+              Inpaintly is a lightweight product front-end for image inpainting workflows:
+              upload → mask → prompt → generate → share.
             </p>
 
             <div className="ctaRow">
-              <button className="primaryBtn" onClick={() => setPage('upload')}>
-                Start using AppName
+              <button className="primaryBtn primaryPulse" onClick={() => setPage('upload')}>
+                Start using Inpaintly
               </button>
+
               <button
                 className="secondaryBtn"
                 onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
@@ -409,34 +456,49 @@ export default function App() {
               </button>
             </div>
 
-            <div className="metaRow">
-              <span className="pill">No credit card</span>
-              <span className="pill">Export-ready</span>
-              <span className="pill">Built for demos</span>
+            <div className="trustRow">
+              <span className="trustItem">• Guided flow</span>
+              <span className="trustItem">• Prompt + negative prompt</span>
+              <span className="trustItem">• 1–5 variations</span>
             </div>
           </div>
 
-          <div className="heroMock">
-            <div className="mockCard">
-              <div className="mockTop">
-                <div className="dot" />
-                <div className="dot" />
-                <div className="dot" />
-              </div>
-              <div className="mockBody">
-                <div className="mockLine strong" />
-                <div className="mockLine" />
-                <div className="mockLine" />
-                <div className="mockGrid">
-                  <div className="mockTile" />
-                  <div className="mockTile" />
-                  <div className="mockTile" />
+          <div className="heroMock heroMockDynamic">
+            <div className="mockCard mockFloat" style={{ perspective: 900 }}>
+              <div className="mockCardInner">
+                <div className="mockTop">
+                  <div className="dot" />
+                  <div className="dot" />
+                  <div className="dot" />
                 </div>
-              </div>
-              <div className="mockFooter">
-                <button className="mockBtn" type="button" onClick={() => setPage('upload')}>
-                  Try it
-                </button>
+
+                <div className="mockBody">
+                  <div className="mockLine strong" />
+                  <div className="mockLine" />
+                  <div className="mockLine" />
+
+                  <div className="mockGrid">
+                    <div className="mockTile mockTileAnim" />
+                    <div className="mockTile mockTileAnim" />
+                    <div className="mockTile mockTileAnim" />
+                  </div>
+
+                  <div className="miniSteps">
+                    {['Upload', 'Mask', 'Prompt', 'Generate', 'Result'].map((s, idx) => (
+                      <div key={s} className="miniStep" style={{ '--d': `${idx * 120}ms` }}>
+                        <span className="miniDot" />
+                        <span>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mockFooter">
+                  <button className="mockBtn" type="button" onClick={() => setPage('upload')}>
+                    Try it
+                  </button>
+                  <span className="mockHint">~ 10s to first result</span>
+                </div>
               </div>
             </div>
           </div>
@@ -444,9 +506,9 @@ export default function App() {
 
         <section id="features" className="section">
           <h2 className="sectionTitle">Features</h2>
-          <div className="grid">
-            {features.map((f) => (
-              <div key={f.title} className="card">
+          <div className="grid gridAnim">
+            {features.map((f, idx) => (
+              <div key={f.title} className="card cardAnim" style={{ '--delay': `${idx * 90}ms` }}>
                 <h3 className="cardTitle">{f.title}</h3>
                 <p className="cardText">{f.desc}</p>
               </div>
@@ -454,33 +516,35 @@ export default function App() {
           </div>
         </section>
 
+        <DemoShowcase />
+
         <section id="pricing" className="section">
-          <h2 className="sectionTitle">Pricing</h2>
+          <h2 className="sectionTitle">Plan Preview</h2>
           <div className="grid">
-            <div className="card">
+            <div className="card cardAnim" style={{ '--delay': `0ms` }}>
               <h3 className="cardTitle">Starter</h3>
-              <p className="cardText">For quick demos and small projects.</p>
-              <p className="price">$0</p>
+              <p className="cardText">Core workflow access for trying the product and testing the inpainting flow.</p>
+              <p className="price">Available now</p>
               <button className="primaryBtn" onClick={() => setPage('upload')}>
                 Start free
               </button>
             </div>
 
-            <div className="card highlight">
+            <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
               <h3 className="cardTitle">Pro</h3>
-              <p className="cardText">For teams shipping consistently.</p>
-              <p className="price">$19</p>
-              <button className="primaryBtn" onClick={() => setPage('upload')}>
-                Start Pro
+              <p className="cardText">Planned upgrades for more control, better output tuning, and a more advanced editing workflow.</p>
+              <p className="price">Planned</p>
+              <button className="primaryBtn" disabled>
+                Coming soon
               </button>
             </div>
 
-            <div className="card">
-              <h3 className="cardTitle">Enterprise</h3>
-              <p className="cardText">SSO, SLAs, custom deployments.</p>
-              <p className="price">Let’s talk</p>
-              <button className="secondaryBtn" onClick={() => alert('TODO: contact sales')}>
-                Contact sales
+            <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
+              <h3 className="cardTitle">Advanced</h3>
+              <p className="cardText">Future expansion for more customization, extended workflows, and broader use cases.</p>
+              <p className="price">Future</p>
+              <button className="secondaryBtn" disabled>
+                Coming later
               </button>
             </div>
           </div>
@@ -492,13 +556,39 @@ export default function App() {
             <details className="faqItem">
               <summary>Does this include the backend model?</summary>
               <p className="cardText">
-                Not yet—this is the front page + app entry UI. Hook buttons to your API/router next.
+                The current version focuses on the front-end workflow and user experience. It is designed to connect to a backend inpainting service, but the exact model and deployment setup can be integrated separately depending on your project.
               </p>
             </details>
             <details className="faqItem">
-              <summary>How do I connect it to the real app?</summary>
+              <summary>Can I control what gets changed in the image?</summary>
               <p className="cardText">
-                Replace the <code>started</code> state with routing (React Router) and navigate to <code>/app</code>.
+                Yes. The workflow includes a mask editing step so you can mark the exact area you want to modify before generation. This helps keep the rest of the image untouched and gives you more precise control over the result.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>What is the difference between normal, fill, and gen mode?</summary>
+              <p className="cardText">
+                Normal follows the standard generation flow.  
+                Fill is intended for simpler color or content filling without relying heavily on prompt guidance.
+                Gen is designed for a two-stage process where filling happens first, followed by prompt-guided generation.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>Can I use my own prompt instead of preset suggestions?</summary>
+              <p className="cardText">
+                Yes. You can select suggested prompt chips, type your own custom prompt, or combine both. This makes it easier to start quickly while still allowing more specific control when needed.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>What is a negative prompt used for?</summary>
+              <p className="cardText">
+                A negative prompt tells the generation system what to avoid, such as text, watermark-like artifacts, or unwanted objects. It helps reduce noise and improves the consistency of the final output.
+              </p>
+            </details>
+            <details className="faqItem">
+              <summary>How long does generation take?</summary>
+              <p className="cardText">
+                Generation time can vary based on the complexity of the edit, the number of variations, and the backend model's performance. The interface provides real-time status updates during generation to keep you informed of the progress.
               </p>
             </details>
           </div>
@@ -506,7 +596,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <span className="footerText">© {new Date().getFullYear()} AppName</span>
+        <span className="footerText">© {new Date().getFullYear()} Inpaintly</span>
         <span className="footerText">Privacy · Terms</span>
       </footer>
     </div>
