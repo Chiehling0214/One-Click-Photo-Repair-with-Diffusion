@@ -296,8 +296,8 @@ export default function App() {
             <span className="brandMark" aria-hidden="true">◆</span>
             <span className="brandName">AppName</span>
           </div>
-          <button className="ghostBtn" onClick={() => setPage('mask')}>
-            Back to mask
+          <button className="ghostBtn" onClick={() => setPage('prompt')}>
+            Back to prompt
           </button>
         </header>
 
