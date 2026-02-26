@@ -71,7 +71,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('home')}>Back to home</button>
         </header>
@@ -145,7 +145,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('upload')}>Back</button>
         </header>
@@ -216,7 +216,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('mask')}>
             Back to mask
@@ -294,7 +294,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('prompt')}>
             Back to prompt
@@ -357,7 +357,7 @@ export default function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brandMark" aria-hidden="true">◆</span>
-            <span className="brandName">AppName</span>
+            <span className="brandName">Inpaintly</span>
           </div>
           <button className="ghostBtn" onClick={() => setPage('home')}>Home</button>
         </header>
@@ -416,7 +416,7 @@ export default function App() {
       <header className="topbar topbarGlass">
         <div className="brand">
           <span className="brandMark" aria-hidden="true">◆</span>
-          <span className="brandName">AppName</span>
+          <span className="brandName">Inpaintly</span>
         </div>
         <nav className="nav">
           <a className="navLink" href="#features">Features</a>
@@ -439,13 +439,13 @@ export default function App() {
             </h1>
 
             <p className="subtitle">
-              AppName is a lightweight product front-end for image inpainting workflows:
+              Inpaintly is a lightweight product front-end for image inpainting workflows:
               upload → mask → prompt → generate → share.
             </p>
 
             <div className="ctaRow">
               <button className="primaryBtn primaryPulse" onClick={() => setPage('upload')}>
-                Start using AppName
+                Start using Inpaintly
               </button>
 
               <button
@@ -596,7 +596,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <span className="footerText">© {new Date().getFullYear()} AppName</span>
+        <span className="footerText">© {new Date().getFullYear()} Inpaintly</span>
         <span className="footerText">Privacy · Terms</span>
       </footer>
     </div>
