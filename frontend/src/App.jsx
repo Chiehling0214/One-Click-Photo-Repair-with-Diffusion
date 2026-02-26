@@ -420,7 +420,7 @@ export default function App() {
         </div>
         <nav className="nav">
           <a className="navLink" href="#features">Features</a>
-          <a className="navLink" href="#pricing">Pricing</a>
+          <a className="navLink" href="#pricing">Plan Preview</a>
           <a className="navLink" href="#faq">FAQ</a>
         </nav>
       </header>
