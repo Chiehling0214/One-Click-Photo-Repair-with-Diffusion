@@ -10,6 +10,7 @@ from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Callable, Tuple
 import torch
 import time
+import numpy as np
 
 #local
 # from app.services.diffusion import diffusion_service
@@ -17,7 +18,7 @@ from app.utils.resize import fit_to_image, prepare_image_and_mask
 from app.utils.restore import restore_to_origin
 from app.utils.roi import compute_roi_box, paste_with_feather
 from app.state.jobs import JOBS, JobState
-from app.services.cartoon import CartoonConfig, opencv_inpaint_fill, hybrid_prepare_image
+from app.services.cartoon import ui_solid_fill, ui_telea_fill
 
 router = APIRouter()
 
@@ -34,7 +35,7 @@ async def inpaint(
     num_outputs: int = Form(1, ge=1, le=5),
     negative_prompt: Optional[str] = Form(None),
     # is_cartoon: Optional[bool] = Form(False),
-    mode: str = Form("normal"), # fill / fill_gen / normal
+    mode: str = Form("normal"), # fill / gen / normal
     think_longer: Optional[bool] = Form(False),
     seed: Optional[int] = Form(None, ge=0)
 ):
@@ -111,6 +112,14 @@ def _do_job(
             job.message = "resizing mask"
             job.updated_at = time.time()
             msk = fit_to_image(msk, img.width, img.height, 640, 420)
+
+        # rgb = np.array(img.convert("RGB"))
+        # m = (np.array(msk.convert("L")) > 10)
+        # rgb[m] = (255, 255, 255)
+        # Image.fromarray(rgb).save(f"debug/{job_id}_debug_overlay.png")
+        # print("img size:", img.size, "mask size:", msk.size)
+        # img.save(f"debug/{job_id}_input.png")
+        # msk.save(f"debug/{job_id}_mask.png")
 
         base_seed = seed if seed is not None else int(time.time())
         seeds = [base_seed + i for i in range(num_outputs)]
@@ -191,15 +200,30 @@ def inpaint_roi_full(*, image_rgb: Image.Image, mask_l: Image.Image, prompt: str
     roi_msk = mask_l.crop(box)
 
     if mode == "fill":
-        cfg = CartoonConfig(method="telea", radius=7)
-        roi_filled = opencv_inpaint_fill(roi_img, roi_msk, cfg)
+        print("smart_fill")
 
-        # 直接貼回去（用 feather）
-        return paste_with_feather(image_rgb, roi_filled, roi_msk, box, feather_px=feather_px)
-    
+        roi_filled = ui_telea_fill(
+            roi_img,
+            roi_msk,
+            radius=5,
+            dilate_px=2,
+            feather_px=12
+        )
+
+        out = image_rgb.copy()
+        out.paste(roi_filled, (x0, y0))    
+        return out
     if mode == "gen":
-        cfg = CartoonConfig(method="telea", radius=7)
-        roi_filled = hybrid_prepare_image(roi_img, roi_msk, cfg)
+        roi_filled = ui_telea_fill(
+            roi_img,
+            roi_msk,
+            radius=5,
+            dilate_px=2,
+            feather_px=12
+        )
+
+        out = image_rgb.copy()
+        out.paste(roi_filled, (x0, y0))    
 
         roi_img_prepared, roi_msk_prepared, meta = prepare_image_and_mask(
             roi_filled, roi_msk, max_side=target, target=target

@@ -14,6 +14,7 @@ class DiffusionService:
         self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
             "runwayml/stable-diffusion-inpainting",
             torch_dtype=dtype,
+            safety_checker=None,
         )
 
         self.pipe.to(self.device)
