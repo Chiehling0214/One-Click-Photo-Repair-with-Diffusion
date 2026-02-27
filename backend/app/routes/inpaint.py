@@ -247,6 +247,18 @@ def inpaint_roi_full(*, image_rgb: Image.Image, mask_l: Image.Image, prompt: str
     
     roi_img_prepared, roi_msk_prepared, meta = prepare_image_and_mask(roi_img, roi_msk, max_side=target, target=target)
 
+    prompt += ", remove the masked object and restore the original background naturally"
+    if negative_prompt is None:
+        negative_prompt = "text, watermark, logo"
+    if not "text" in negative_prompt:
+        negative_prompt += ", text"
+    if not "watermark" in negative_prompt:
+        negative_prompt += ", watermark"
+    if not "logo" in negative_prompt:
+        negative_prompt += ", logo"
+    
+    print(prompt, negative_prompt)
+
     roi_out_sq = diffusion_service.inpaint(
         image=roi_img_prepared, 
         mask=roi_msk_prepared, 
