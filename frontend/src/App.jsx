@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 import DemoShowcase from './components/DemoShowcase.jsx'
@@ -12,7 +12,7 @@ export default function App() {
   const [page, setPage] = useState('home') // home | upload | mask | prompt | generate | result
 
   const [variations, setVariations] = useState(1) // 1..5
-  const [selectedPrompts, setSelectedPrompts] = useState([]) 
+  const [selectedPrompts, setSelectedPrompts] = useState([])
   const [userPrompt, setUserPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [thinkLonger, setThinkLonger] = useState(false)
@@ -27,28 +27,38 @@ export default function App() {
 
   const [plan, setPlan] = useState('starter') // starter | pro | advanced
 
-  async function handleAutoMask({ imageFile, box }) {
-    if (!imageFile) {
-      throw new Error('imageFile is missing.')
+  useEffect(() => {
+    if (!maskBlob) {
+      setMaskUrl('')
+      return
     }
-  
+
+    const url = URL.createObjectURL(maskBlob)
+    setMaskUrl(url)
+
+    return () => {
+      URL.revokeObjectURL(url)
+    }
+  }, [maskBlob])
+
+  async function handleAutoMask({ imageFile, box }) {
     const form = new FormData()
     form.append('image', imageFile)
     form.append('x', String(box.x))
     form.append('y', String(box.y))
     form.append('w', String(box.w))
     form.append('h', String(box.h))
-  
-    const res = await fetch('http://localhost:8000/sam-mask', {
+
+    const res = await fetch('http://127.0.0.1:8000/sam-mask', {
       method: 'POST',
       body: form,
     })
-  
+
     if (!res.ok) {
-      throw new Error(`SAM request failed: ${res.status}`)
+      const text = await res.text()
+      throw new Error(`SAM request failed: ${res.status} ${text}`)
     }
-  
-    // backend 回傳 PNG mask
+
     return await res.blob()
   }
 
@@ -113,6 +123,8 @@ export default function App() {
                 onContinue={({ file, previewUrl }) => {
                   setImageFile(file)
                   setImageUrl(previewUrl)
+                  setMaskBlob(null)
+                  setResultUrls([])
                   setPage('mask')
                 }}
               />
@@ -174,23 +186,23 @@ export default function App() {
             <span className="brandMark" aria-hidden="true">◆</span>
             <span className="brandName">Inpaintly</span>
           </div>
-          <button className="ghostBtn" onClick={() => setPage('upload')}>Back</button>
+          <button className="ghostBtn" onClick={() => setPage('home')}>Back to home</button>
         </header>
 
         <main className="main">
           <section className="hero">
             <div className="heroCopy">
-            <MaskEditor
-              plan={plan}
-              imageUrl={imageUrl}
-              imageFile={imageFile}
-              onBack={() => setPage('upload')}
-              onNext={({ maskBlob }) => {
-                setMaskBlob(maskBlob)
-                setPage('prompt')
-              }}
-              onAutoMask={plan === 'pro' ? handleAutoMask : undefined}
-            />
+              <MaskEditor
+                plan={plan}
+                imageUrl={imageUrl}
+                imageFile={imageFile}
+                onBack={() => setPage('upload')}
+                onNext={({ maskBlob }) => {
+                  setMaskBlob(maskBlob)
+                  setPage('prompt')
+                }}
+                onAutoMask={plan === 'pro' ? handleAutoMask : undefined}
+              />
             </div>
 
             <div className="heroMock">
@@ -246,11 +258,11 @@ export default function App() {
             <span className="brandMark" aria-hidden="true">◆</span>
             <span className="brandName">Inpaintly</span>
           </div>
-          <button className="ghostBtn" onClick={() => setPage('mask')}>
-            Back to mask
+          <button className="ghostBtn" onClick={() => setPage('home')}>
+            Back to home
           </button>
         </header>
-  
+
         <main className="main">
           <section className="hero">
             <div className="heroCopy">
@@ -284,10 +296,10 @@ export default function App() {
                 }}
               />
             </div>
-  
+
             <div className="heroMock">
-            <div className="mockCard">
-              <div className="mockTop">
+              <div className="mockCard">
+                <div className="mockTop">
                   <div className="dot" />
                   <div className="dot" />
                   <div className="dot" />
@@ -296,7 +308,7 @@ export default function App() {
                   <p className="cardText" style={{ marginTop: 4 }}>
                     Selected prompts will be combined as a single string and sent to the backend.
                   </p>
-  
+
                   <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
                     <div className="pill">Step 3/5: Prompt</div>
                     <div className="pill">Variations: {variations}</div>
@@ -324,8 +336,8 @@ export default function App() {
             <span className="brandMark" aria-hidden="true">◆</span>
             <span className="brandName">Inpaintly</span>
           </div>
-          <button className="ghostBtn" onClick={() => setPage('prompt')}>
-            Back to prompt
+          <button className="ghostBtn" onClick={() => setPage('home')}>
+            Back to home
           </button>
         </header>
 
@@ -429,7 +441,6 @@ export default function App() {
   // ========= Home page =========
   return (
     <div className="app-shell homeShell">
-      {/* Animated background */}
       <div className="bgFx" aria-hidden="true">
         <div className="blob blob1" />
         <div className="blob blob2" />
@@ -551,34 +562,44 @@ export default function App() {
           <div className="grid">
             <div className="card cardAnim" style={{ '--delay': `0ms` }}>
               <h3 className="cardTitle">Starter</h3>
-              <p className="cardText">Core workflow access for trying the product and testing the inpainting flow.</p>
+              <p className="cardText">
+                Includes the core inpainting workflow: upload, manual masking, prompt editing, and result generation.
+              </p>
               <p className="price">Available now</p>
-              <button className="primaryBtn" 
+              <button
+                className="primaryBtn"
                 onClick={() => {
                   setPlan('starter')
                   setPage('upload')
-                }}>
-                Start free
+                }}
+              >
+                Start Starter
               </button>
             </div>
 
             <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
               <h3 className="cardTitle">Pro</h3>
-              <p className="cardText">Planned upgrades for more control, better output tuning, and a more advanced editing workflow.</p>
-              <p className="price">Planned</p>
-              <button className="primaryBtn" 
+              <p className="cardText">
+                Adds a more advanced editing flow with Auto Mask support, better control, and a faster path to cleaner results.
+              </p>
+              <p className="price">Preview available</p>
+              <button
+                className="primaryBtn"
                 onClick={() => {
                   setPlan('pro')
                   setPage('upload')
-                }}>
-                Start Pro
+                }}
+              >
+                Try Pro Preview
               </button>
             </div>
 
-            <div className="card highlight cardAnim" style={{ '--delay': `90ms` }}>
+            <div className="card highlight cardAnim" style={{ '--delay': `180ms` }}>
               <h3 className="cardTitle">Advanced</h3>
-              <p className="cardText">Future expansion for more customization, extended workflows, and broader use cases.</p>
-              <p className="price">Future</p>
+              <p className="cardText">
+                Planned future expansion for more customization, richer workflows, and broader image editing use cases.
+              </p>
+              <p className="price">Coming later</p>
               <button className="secondaryBtn" disabled>
                 Coming later
               </button>
@@ -604,7 +625,7 @@ export default function App() {
             <details className="faqItem">
               <summary>What is the difference between normal, fill, and gen mode?</summary>
               <p className="cardText">
-                Normal follows the standard generation flow.  
+                Normal follows the standard generation flow.
                 Fill is intended for simpler color or content filling without relying heavily on prompt guidance.
                 Gen is designed for a two-stage process where filling happens first, followed by prompt-guided generation.
               </p>
@@ -624,7 +645,7 @@ export default function App() {
             <details className="faqItem">
               <summary>How long does generation take?</summary>
               <p className="cardText">
-                Generation time can vary based on the complexity of the edit, the number of variations, and the backend model's performance. The interface provides real-time status updates during generation to keep you informed of the progress.
+                Generation time can vary based on the complexity of the edit, the number of variations, and the backend model&apos;s performance. The interface provides real-time status updates during generation to keep you informed of the progress.
               </p>
             </details>
           </div>
