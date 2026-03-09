@@ -3,6 +3,7 @@ import threading
 from abc import ABC, abstractmethod
 from typing import Literal, Tuple
 
+import cv2
 import numpy as np
 import torch
 from PIL import Image
@@ -37,9 +38,27 @@ class MobileSamBackend(BaseSamBackend):
                 f"MobileSAM checkpoint not found: {checkpoint_path}"
             )
 
+        file_size = os.path.getsize(checkpoint_path)
+        if file_size == 0:
+            raise RuntimeError(
+                f"MobileSAM checkpoint is empty: {checkpoint_path}"
+            )
+
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model_type = model_type
         self.checkpoint_path = checkpoint_path
+
+        # mask dilation params
+        # kernel size should be odd: 1, 3, 5, 7, 9...
+        self.dilate_kernel_size = int(os.getenv("SAM_DILATE_KERNEL", "9"))
+        self.dilate_iterations = int(os.getenv("SAM_DILATE_ITERATIONS", "1"))
+
+        if self.dilate_kernel_size < 1:
+            self.dilate_kernel_size = 1
+        if self.dilate_kernel_size % 2 == 0:
+            self.dilate_kernel_size += 1
+        if self.dilate_iterations < 0:
+            self.dilate_iterations = 0
 
         model = sam_model_registry[self.model_type](checkpoint=self.checkpoint_path)
         model.to(device=self.device)
@@ -47,6 +66,16 @@ class MobileSamBackend(BaseSamBackend):
 
         self.predictor = SamPredictor(model)
         self._lock = threading.Lock()
+
+    def _expand_mask(self, mask: np.ndarray) -> np.ndarray:
+        if self.dilate_iterations == 0 or self.dilate_kernel_size == 1:
+            return mask
+
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE,
+            (self.dilate_kernel_size, self.dilate_kernel_size),
+        )
+        return cv2.dilate(mask, kernel, iterations=self.dilate_iterations)
 
     def segment_box(self, image_rgb: Image.Image, box: BoxXYXY) -> Image.Image:
         x0, y0, x1, y1 = box
@@ -68,6 +97,9 @@ class MobileSamBackend(BaseSamBackend):
 
         best_idx = int(np.argmax(scores))
         best_mask = masks[best_idx].astype(np.uint8) * 255
+
+        # Expand mask slightly beyond the object boundary
+        best_mask = self._expand_mask(best_mask)
 
         return Image.fromarray(best_mask, mode="L")
 
