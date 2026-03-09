@@ -25,6 +25,33 @@ export default function App() {
   const [maskUrl, setMaskUrl] = useState('')       // preview
   const [resultUrls, setResultUrls] = useState([])
 
+  const [plan, setPlan] = useState('starter') // starter | pro | advanced
+
+  async function handleAutoMask({ imageFile, box }) {
+    if (!imageFile) {
+      throw new Error('imageFile is missing.')
+    }
+  
+    const form = new FormData()
+    form.append('image', imageFile)
+    form.append('x', String(box.x))
+    form.append('y', String(box.y))
+    form.append('w', String(box.w))
+    form.append('h', String(box.h))
+  
+    const res = await fetch('http://localhost:8000/sam-mask', {
+      method: 'POST',
+      body: form,
+    })
+  
+    if (!res.ok) {
+      throw new Error(`SAM request failed: ${res.status}`)
+    }
+  
+    // backend 回傳 PNG mask
+    return await res.blob()
+  }
+
   const features = useMemo(
     () => [
       {
@@ -153,16 +180,17 @@ export default function App() {
         <main className="main">
           <section className="hero">
             <div className="heroCopy">
-              <MaskEditor
-                imageUrl={imageUrl}
-                onBack={() => setPage('upload')}
-                onNext={(blob) => {
-                  setMaskBlob(blob)
-                  const url = URL.createObjectURL(blob)
-                  setMaskUrl(url)
-                  setPage('prompt')
-                }}
-              />
+            <MaskEditor
+              plan={plan}
+              imageUrl={imageUrl}
+              imageFile={imageFile}
+              onBack={() => setPage('upload')}
+              onNext={({ maskBlob }) => {
+                setMaskBlob(maskBlob)
+                setPage('prompt')
+              }}
+              onAutoMask={plan === 'pro' ? handleAutoMask : undefined}
+            />
             </div>
 
             <div className="heroMock">
@@ -525,7 +553,11 @@ export default function App() {
               <h3 className="cardTitle">Starter</h3>
               <p className="cardText">Core workflow access for trying the product and testing the inpainting flow.</p>
               <p className="price">Available now</p>
-              <button className="primaryBtn" onClick={() => setPage('upload')}>
+              <button className="primaryBtn" 
+                onClick={() => {
+                  setPlan('starter')
+                  setPage('upload')
+                }}>
                 Start free
               </button>
             </div>
@@ -534,8 +566,12 @@ export default function App() {
               <h3 className="cardTitle">Pro</h3>
               <p className="cardText">Planned upgrades for more control, better output tuning, and a more advanced editing workflow.</p>
               <p className="price">Planned</p>
-              <button className="primaryBtn" disabled>
-                Coming soon
+              <button className="primaryBtn" 
+                onClick={() => {
+                  setPlan('pro')
+                  setPage('upload')
+                }}>
+                Start Pro
               </button>
             </div>
 
