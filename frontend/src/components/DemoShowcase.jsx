@@ -5,6 +5,7 @@ import s2 from '../assets/s2.png'
 import s3 from '../assets/s3.png'
 import s4 from '../assets/s4.png'
 import s5 from '../assets/s5.png'
+import samVideo from '../assets/sam.mp4'
 
 function StoryStep({ step, index }) {
   const ref = useRef(null)
@@ -102,6 +103,47 @@ export default function ProductStory() {
         {steps.map((step, index) => (
           <StoryStep key={step.title} step={step} index={index} />
         ))}
+      </div>
+
+      <div className="demoSamFeature">
+        <div className="demoSamFeatureCopy">
+          <p className="demoSamFeatureEyebrow">Pro Feature</p>
+          <h3 className="demoSamFeatureTitle">SAM Auto Mask</h3>
+          <p className="demoSamFeatureDesc">
+            Use Segment Anything Model to detect object boundaries more precisely.
+            This gives Pro users a faster and cleaner editing workflow with less
+            manual mask painting.
+          </p>
+
+          <ul className="demoSamFeatureList">
+            <li>Cleaner object boundaries</li>
+            <li>Less manual masking</li>
+            <li>Faster editing flow</li>
+            <li>Better inpainting input quality</li>
+          </ul>
+
+          <button
+            className="primaryBtn"
+            onClick={() => {
+              onTryPro?.()
+            }}
+          >
+            Try Pro Preview
+          </button>
+        </div>
+
+        <div className="demoSamFeatureMedia">
+          <video
+            className="demoSamFeatureVideo"
+            src={samVideo}
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            preload="metadata"
+          />
+        </div>
       </div>
     </section>
   )

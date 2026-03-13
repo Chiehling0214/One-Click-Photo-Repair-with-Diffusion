@@ -917,3 +917,70 @@ body {
 #faq {
   scroll-margin-top: 100px;
 }
+
+.demoSamFeature {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.01)
+  );
+}
+
+.demoSamFeatureCopy {
+  min-width: 0;
+}
+
+.demoSamFeatureEyebrow {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.demoSamFeatureTitle {
+  margin: 0 0 12px;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.05;
+}
+
+.demoSamFeatureDesc {
+  margin: 0 0 16px;
+  line-height: 1.75;
+  opacity: 0.86;
+}
+
+.demoSamFeatureList {
+  margin: 0 0 20px;
+  padding-left: 1.1rem;
+  line-height: 1.8;
+  opacity: 0.92;
+}
+
+.demoSamFeatureMedia {
+  width: 100%;
+}
+
+.demoSamFeatureVideo {
+  width: 100%;
+  display: block;
+  border-radius: 20px;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+@media (max-width: 900px) {
+  .demoSamFeature {
+    grid-template-columns: 1fr;
+  }
+}

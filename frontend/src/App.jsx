@@ -555,7 +555,12 @@ export default function App() {
           </div>
         </section>
 
-        <DemoShowcase />
+        <DemoShowcase
+          onTryPro={() => {
+            setPlan('pro')
+            setPage('upload')
+          }}
+        />
 
         <section id="pricing" className="section">
           <h2 className="sectionTitle">Plan Preview</h2>
