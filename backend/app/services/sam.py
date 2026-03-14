@@ -48,17 +48,9 @@ class MobileSamBackend(BaseSamBackend):
         self.model_type = model_type
         self.checkpoint_path = checkpoint_path
 
-        # mask dilation params
-        # kernel size should be odd: 1, 3, 5, 7, 9...
-        self.dilate_kernel_size = int(os.getenv("SAM_DILATE_KERNEL", "9"))
-        self.dilate_iterations = int(os.getenv("SAM_DILATE_ITERATIONS", "1"))
-
-        if self.dilate_kernel_size < 1:
-            self.dilate_kernel_size = 1
-        if self.dilate_kernel_size % 2 == 0:
-            self.dilate_kernel_size += 1
-        if self.dilate_iterations < 0:
-            self.dilate_iterations = 0
+        self.expand_px = int(os.getenv("SAM_EXPAND_PX", "35"))
+        if self.expand_px < 0:
+            self.expand_px = 0
 
         model = sam_model_registry[self.model_type](checkpoint=self.checkpoint_path)
         model.to(device=self.device)
@@ -67,15 +59,26 @@ class MobileSamBackend(BaseSamBackend):
         self.predictor = SamPredictor(model)
         self._lock = threading.Lock()
 
-    def _expand_mask(self, mask: np.ndarray) -> np.ndarray:
-        if self.dilate_iterations == 0 or self.dilate_kernel_size == 1:
+    def _expand_mask_by_n_pixels(self, mask: np.ndarray, expand_px: int) -> np.ndarray:
+        """
+        mask: uint8 binary mask, foreground=255, background=0
+        expand_px: expand outward by exactly about n pixels
+
+        Return:
+            expanded uint8 mask, foreground=255
+        """
+        if expand_px <= 0:
             return mask
 
-        kernel = cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE,
-            (self.dilate_kernel_size, self.dilate_kernel_size),
-        )
-        return cv2.dilate(mask, kernel, iterations=self.dilate_iterations)
+
+        binary = (mask > 127).astype(np.uint8)
+
+
+        inv = 1 - binary
+        dist = cv2.distanceTransform(inv, distanceType=cv2.DIST_L2, maskSize=5)
+
+        expanded = np.where((binary == 1) | (dist <= expand_px), 255, 0).astype(np.uint8)
+        return expanded
 
     def segment_box(self, image_rgb: Image.Image, box: BoxXYXY) -> Image.Image:
         x0, y0, x1, y1 = box
@@ -98,8 +101,7 @@ class MobileSamBackend(BaseSamBackend):
         best_idx = int(np.argmax(scores))
         best_mask = masks[best_idx].astype(np.uint8) * 255
 
-        # Expand mask slightly beyond the object boundary
-        best_mask = self._expand_mask(best_mask)
+        best_mask = self._expand_mask_by_n_pixels(best_mask, self.expand_px)
 
         return Image.fromarray(best_mask, mode="L")
 
