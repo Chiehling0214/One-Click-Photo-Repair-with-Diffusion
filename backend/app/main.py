@@ -1,7 +1,10 @@
 from fastapi import FastAPI
-from app.routes.inpaint import router as inpaint_router
-from app.services.diffusion import DiffusionService
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.routes.inpaint import router as inpaint_router
+from app.routes.sam import router as sam_router
+from app.services.diffusion import DiffusionService
+from app.services.sam import SamService
 
 app = FastAPI()
 
@@ -24,9 +27,11 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     app.state.diffusion_service = DiffusionService()
+    app.state.sam_service = SamService()
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 app.include_router(inpaint_router)
+app.include_router(sam_router)
