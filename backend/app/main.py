@@ -5,6 +5,17 @@ from app.routes.inpaint import router as inpaint_router
 from app.routes.sam import router as sam_router
 from app.services.diffusion import DiffusionService
 from app.services.sam import SamService
+import logging
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module=r"mobile_sam\..*")
+warnings.filterwarnings("ignore", category=UserWarning, module=r"timm\..*")
+
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("diffusers").setLevel(logging.ERROR)
+
 
 app = FastAPI()
 

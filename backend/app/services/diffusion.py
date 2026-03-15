@@ -15,6 +15,7 @@ class DiffusionService:
             "runwayml/stable-diffusion-inpainting",
             torch_dtype=dtype,
             safety_checker=None,
+            use_safetensors=False,
         )
 
         self.pipe.to(self.device)
