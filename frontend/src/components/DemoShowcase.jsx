@@ -53,7 +53,7 @@ function StoryStep({ step, index }) {
   )
 }
 
-export default function ProductStory() {
+export default function ProductStory({ onTryPro }) {
   const steps = useMemo(
     () => [
       {

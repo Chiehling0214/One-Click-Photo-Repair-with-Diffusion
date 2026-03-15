@@ -1,6 +1,9 @@
 # One-Click-Photo-Repair-with-Diffusion
 
 ## How to Setup for Backend
+### Prerequisites
+- **Python 3.11 or later**
+- **git**
 
 In CMD,   
 ```bash
